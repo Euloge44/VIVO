@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: gourmetguide
+      POSTGRES_USER: gourmetguide
+      POSTGRES_PASSWORD: gourmetguide123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gourmetguide"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis pour cache et Django Channels
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Django
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py create_test_data --clear &&
+             gunicorn --bind 0.0.0.0:8000 --workers 3 gourmetguide.wsgi:application"
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgres://gourmetguide:gourmetguide123@db:5432/gourmetguide
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx (serveur web)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - web
+
+  # Celery Worker (tâches asynchrones)
+  celery:
+    build: .
+    command: celery -A gourmetguide worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgres://gourmetguide:gourmetguide123@db:5432/gourmetguide
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  # Celery Beat (tâches planifiées)
+  celery-beat:
+    build: .
+    command: celery -A gourmetguide beat -l info
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgres://gourmetguide:gourmetguide123@db:5432/gourmetguide
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  # Flower (monitoring Celery)
+  flower:
+    build: .
+    command: celery -A gourmetguide flower
+    ports:
+      - "5555:5555"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgres://gourmetguide:gourmetguide123@db:5432/gourmetguide
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:

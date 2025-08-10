@@ -1,0 +1,497 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "À propos" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 3rem;
+    }
+    
+    .feature-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .stats-section {
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        border-radius: 15px;
+        margin: 3rem 0;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        display: block;
+    }
+    
+    .team-member {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .team-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--primary-color);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0.5rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--primary-color);
+    }
+    
+    .values-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .value-item {
+        text-align: center;
+        padding: 2rem;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .value-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Section héro -->
+<section class="hero-section p-5 text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold mb-3">{% trans "À propos de GourmetGuide" %}</h1>
+        <p class="lead mb-4">{% trans "Votre plateforme de référence pour la découverte culinaire et la livraison de repas au Togo" %}</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <p class="mb-0">
+                    {% trans "Depuis notre création, nous nous efforçons de connecter les amateurs de cuisine avec les meilleurs restaurants locaux, tout en offrant une expérience de livraison exceptionnelle." %}
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Notre mission -->
+<section class="container mb-5">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <h2 class="mb-4">{% trans "Notre Mission" %}</h2>
+            <p class="lead mb-3">
+                {% trans "Révolutionner l'expérience culinaire au Togo en connectant les gourmets avec les meilleurs restaurants locaux." %}
+            </p>
+            <p class="mb-4">
+                {% trans "Nous croyons que chaque repas doit être une expérience mémorable. C'est pourquoi nous travaillons sans relâche pour offrir une plateforme qui facilite la découverte de nouveaux restaurants, simplifie le processus de commande et garantit une livraison rapide et fiable." %}
+            </p>
+            <div class="d-flex gap-3">
+                <div>
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    {% trans "Livraison rapide et fiable" %}
+                </div>
+            </div>
+            <div class="d-flex gap-3 mt-2">
+                <div>
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    {% trans "Support des paiements mobiles locaux" %}
+                </div>
+            </div>
+            <div class="d-flex gap-3 mt-2">
+                <div>
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    {% trans "Programme de fidélité avantageux" %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="text-center">
+                <div style="width: 300px; height: 300px; border-radius: 50%; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); display: flex; align-items: center; justify-content: center; margin: 0 auto; color: white; font-size: 4rem;">
+                    <i class="fas fa-utensils"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Nos valeurs -->
+<section class="container mb-5">
+    <h2 class="text-center mb-5">{% trans "Nos Valeurs" %}</h2>
+    <div class="values-grid">
+        <div class="value-item">
+            <div class="feature-icon bg-primary bg-opacity-10 text-primary">
+                <i class="fas fa-heart"></i>
+            </div>
+            <h4>{% trans "Passion" %}</h4>
+            <p class="text-muted">{% trans "Nous sommes passionnés par la cuisine et nous nous efforçons de partager cette passion avec nos utilisateurs." %}</p>
+        </div>
+        
+        <div class="value-item">
+            <div class="feature-icon bg-success bg-opacity-10 text-success">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <h4>{% trans "Confiance" %}</h4>
+            <p class="text-muted">{% trans "Nous construisons des relations de confiance avec nos restaurants partenaires et nos clients." %}</p>
+        </div>
+        
+        <div class="value-item">
+            <div class="feature-icon bg-warning bg-opacity-10 text-warning">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h4>{% trans "Innovation" %}</h4>
+            <p class="text-muted">{% trans "Nous innovons constamment pour améliorer l'expérience utilisateur et rester à la pointe de la technologie." %}</p>
+        </div>
+        
+        <div class="value-item">
+            <div class="feature-icon bg-info bg-opacity-10 text-info">
+                <i class="fas fa-users"></i>
+            </div>
+            <h4>{% trans "Communauté" %}</h4>
+            <p class="text-muted">{% trans "Nous soutenons la communauté locale en promouvant les restaurants et les producteurs locaux." %}</p>
+        </div>
+    </div>
+</section>
+
+<!-- Statistiques -->
+<section class="stats-section p-5">
+    <div class="container">
+        <h2 class="text-center mb-5">{% trans "GourmetGuide en chiffres" %}</h2>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">500+</span>
+                    <h5>{% trans "Restaurants partenaires" %}</h5>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">10,000+</span>
+                    <h5>{% trans "Clients satisfaits" %}</h5>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">50,000+</span>
+                    <h5>{% trans "Commandes livrées" %}</h5>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <span class="stat-number">98%</span>
+                    <h5>{% trans "Taux de satisfaction" %}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Notre histoire -->
+<section class="container mb-5">
+    <div class="row">
+        <div class="col-md-6">
+            <h2 class="mb-4">{% trans "Notre Histoire" %}</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h5>{% trans "2023 - Naissance de l'idée" %}</h5>
+                    <p class="text-muted">{% trans "L'idée de GourmetGuide naît de la frustration de ne pas pouvoir facilement découvrir et commander dans les meilleurs restaurants locaux." %}</p>
+                </div>
+                
+                <div class="timeline-item">
+                    <h5>{% trans "2024 - Développement" %}</h5>
+                    <p class="text-muted">{% trans "Développement de la plateforme avec un focus sur l'expérience utilisateur et l'intégration des paiements mobiles locaux." %}</p>
+                </div>
+                
+                <div class="timeline-item">
+                    <h5>{% trans "2024 - Lancement" %}</h5>
+                    <p class="text-muted">{% trans "Lancement officiel de GourmetGuide avec nos premiers restaurants partenaires à Lomé." %}</p>
+                </div>
+                
+                <div class="timeline-item">
+                    <h5>{% trans "Aujourd'hui" %}</h5>
+                    <p class="text-muted">{% trans "Expansion continue avec de nouveaux restaurants et fonctionnalités innovantes pour améliorer votre expérience culinaire." %}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <h2 class="mb-4">{% trans "Notre Équipe" %}</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="team-member">
+                        <div class="team-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h5>{% trans "Équipe de Direction" %}</h5>
+                        <p class="text-muted">{% trans "Dirigeants passionnés" %}</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="team-member">
+                        <div class="team-avatar">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h5>{% trans "Équipe Technique" %}</h5>
+                        <p class="text-muted">{% trans "Développeurs experts" %}</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="team-member">
+                        <div class="team-avatar">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h5>{% trans "Service Client" %}</h5>
+                        <p class="text-muted">{% trans "Support dévoué" %}</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="team-member">
+                        <div class="team-avatar">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <h5>{% trans "Équipe Livraison" %}</h5>
+                        <p class="text-muted">{% trans "Livreurs professionnels" %}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pourquoi nous choisir -->
+<section class="container mb-5">
+    <h2 class="text-center mb-5">{% trans "Pourquoi choisir GourmetGuide ?" %}</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h4>{% trans "Paiements Mobiles" %}</h4>
+                <p class="text-muted">{% trans "Support natif pour Tmoney et Flooz, les moyens de paiement mobiles les plus populaires au Togo." %}</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h4>{% trans "Livraison Rapide" %}</h4>
+                <p class="text-muted">{% trans "Suivi en temps réel de vos commandes avec des délais de livraison optimisés pour chaque zone de Lomé." %}</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-star"></i>
+                </div>
+                <h4>{% trans "Programme de Fidélité" %}</h4>
+                <p class="text-muted">{% trans "Gagnez des points à chaque commande et bénéficiez de récompenses exclusives et de réductions." %}</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h4>{% trans "Sécurité" %}</h4>
+                <p class="text-muted">{% trans "Transactions sécurisées et protection de vos données personnelles avec les dernières technologies de cryptage." %}</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <h4>{% trans "Cuisine Locale" %}</h4>
+                <p class="text-muted">{% trans "Découvrez la richesse de la cuisine togolaise avec nos restaurants partenaires spécialisés dans les plats traditionnels." %}</p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="feature-card card text-center p-4">
+                <div class="feature-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h4>{% trans "Support 24/7" %}</h4>
+                <p class="text-muted">{% trans "Notre équipe de support client est disponible 24h/24 et 7j/7 pour répondre à toutes vos questions." %}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Appel à l'action -->
+<section class="container text-center mb-5">
+    <div class="card feature-card p-5">
+        <h2 class="mb-3">{% trans "Rejoignez la révolution culinaire" %}</h2>
+        <p class="lead text-muted mb-4">
+            {% trans "Que vous soyez un amateur de cuisine, un restaurateur ou un livreur, GourmetGuide a une place pour vous." %}
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="{% url 'accounts:register_choice' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i>{% trans "Créer un compte" %}
+            </a>
+            <a href="{% url 'restaurants:list' %}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-search me-2"></i>{% trans "Découvrir les restaurants" %}
+            </a>
+            <a href="{% url 'core:contact' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-envelope me-2"></i>{% trans "Nous contacter" %}
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation des cartes de fonctionnalités
+    const featureCards = document.querySelectorAll('.feature-card');
+    featureCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100 + 200);
+    });
+    
+    // Animation des statistiques
+    const statNumbers = document.querySelectorAll('.stat-number');
+    
+    function animateCounter(element, target) {
+        const numericTarget = parseInt(target.replace(/[^\d]/g, '')) || 0;
+        let current = 0;
+        const increment = numericTarget / 50;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= numericTarget) {
+                current = numericTarget;
+                clearInterval(timer);
+            }
+            
+            let displayValue = Math.floor(current);
+            if (target.includes('+')) {
+                displayValue += '+';
+            }
+            if (target.includes('%')) {
+                displayValue += '%';
+            }
+            element.textContent = displayValue;
+        }, 40);
+    }
+    
+    // Observer pour démarrer l'animation quand la section est visible
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const statNumbers = entry.target.querySelectorAll('.stat-number');
+                statNumbers.forEach(stat => {
+                    const target = stat.dataset.target || stat.textContent;
+                    animateCounter(stat, target);
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    });
+    
+    const statsSection = document.querySelector('.stats-section');
+    if (statsSection) {
+        // Sauvegarder les valeurs cibles
+        statNumbers.forEach(stat => {
+            stat.dataset.target = stat.textContent;
+            stat.textContent = '0';
+        });
+        observer.observe(statsSection);
+    }
+    
+    // Animation de la timeline
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    timelineItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateX(-20px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.5s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateX(0)';
+        }, index * 200 + 800);
+    });
+});
+</script>
+{% endblock %}

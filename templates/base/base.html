@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+<html lang="{% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="{% block meta_description %}GourmetGuide - Découvrez les meilleurs restaurants et commandez en ligne{% endblock %}">
+    <meta name="author" content="GourmetGuide">
+    
+    <title>{% block title %}GourmetGuide{% endblock %} | {% if site_settings %}{{ site_settings.site_name }}{% else %}GourmetGuide{% endif %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'core:home' %}">
+                <i class="fas fa-utensils me-2"></i>GourmetGuide
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:home' %}">
+                            <i class="fas fa-home me-1"></i>{% trans "Accueil" %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'restaurants:list' %}">
+                            <i class="fas fa-store me-1"></i>{% trans "Restaurants" %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:search' %}">
+                            <i class="fas fa-search me-1"></i>{% trans "Rechercher" %}
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <!-- Panier -->
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{% url 'orders:cart' %}">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cart-count">
+                                    0
+                                </span>
+                            </a>
+                        </li>
+                        
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" id="notification-count">
+                                    0
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+                                <li><h6 class="dropdown-header">{% trans "Notifications" %}</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-center" href="{% url 'notifications:list' %}">{% trans "Voir toutes" %}</a></li>
+                            </ul>
+                        </li>
+                        
+                        <!-- Menu utilisateur -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>{{ user.get_full_name|default:user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">
+                                    <i class="fas fa-user me-2"></i>{% trans "Mon profil" %}
+                                </a></li>
+                                
+                                {% if user.user_type == 'client' %}
+                                    <li><a class="dropdown-item" href="{% url 'accounts:client_dashboard' %}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>{% trans "Tableau de bord" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'orders:list' %}">
+                                        <i class="fas fa-receipt me-2"></i>{% trans "Mes commandes" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'loyalty:dashboard' %}">
+                                        <i class="fas fa-star me-2"></i>{% trans "Fidélité" %}
+                                    </a></li>
+                                {% elif user.user_type == 'restaurant' %}
+                                    <li><a class="dropdown-item" href="{% url 'restaurants:dashboard' %}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>{% trans "Tableau de bord" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'restaurants:menu_management' %}">
+                                        <i class="fas fa-utensils me-2"></i>{% trans "Gérer le menu" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'restaurants:order_management' %}">
+                                        <i class="fas fa-clipboard-list me-2"></i>{% trans "Commandes" %}
+                                    </a></li>
+                                {% elif user.user_type == 'delivery' %}
+                                    <li><a class="dropdown-item" href="{% url 'delivery:dashboard' %}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>{% trans "Tableau de bord" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'delivery:available' %}">
+                                        <i class="fas fa-motorcycle me-2"></i>{% trans "Livraisons disponibles" %}
+                                    </a></li>
+                                {% elif user.user_type == 'admin' %}
+                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+                                        <i class="fas fa-cog me-2"></i>{% trans "Administration" %}
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'analytics:dashboard' %}">
+                                        <i class="fas fa-chart-bar me-2"></i>{% trans "Analytics" %}
+                                    </a></li>
+                                {% endif %}
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:preferences' %}">
+                                    <i class="fas fa-cog me-2"></i>{% trans "Préférences" %}
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>{% trans "Déconnexion" %}
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>{% trans "Connexion" %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'accounts:register_choice' %}">
+                                <i class="fas fa-user-plus me-1"></i>{% trans "Inscription" %}
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- Sélecteur de langue -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-globe me-1"></i>
+                            {% get_current_language as LANGUAGE_CODE %}
+                            {% if LANGUAGE_CODE == 'fr' %}FR{% else %}EN{% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form method="post" action="{% url 'accounts:switch_language' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" name="language" value="fr" class="dropdown-item">
+                                        🇫🇷 Français
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post" action="{% url 'accounts:switch_language' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" name="language" value="en" class="dropdown-item">
+                                        🇬🇧 English
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-5 pt-4">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Contenu principal -->
+    <main class="{% block main_class %}container mt-5 pt-4{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light mt-5">
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5><i class="fas fa-utensils me-2"></i>GourmetGuide</h5>
+                    <p class="text-muted">{% trans "Découvrez les meilleurs restaurants et commandez en ligne facilement." %}</p>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <h6>{% trans "Navigation" %}</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'core:home' %}" class="text-muted">{% trans "Accueil" %}</a></li>
+                        <li><a href="{% url 'restaurants:list' %}" class="text-muted">{% trans "Restaurants" %}</a></li>
+                        <li><a href="{% url 'core:about' %}" class="text-muted">{% trans "À propos" %}</a></li>
+                        <li><a href="{% url 'core:contact' %}" class="text-muted">{% trans "Contact" %}</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h6>{% trans "Support" %}</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'core:faq' %}" class="text-muted">{% trans "FAQ" %}</a></li>
+                        <li><a href="{% url 'core:terms' %}" class="text-muted">{% trans "Conditions" %}</a></li>
+                        <li><a href="{% url 'core:privacy' %}" class="text-muted">{% trans "Confidentialité" %}</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6>{% trans "Contact" %}</h6>
+                    <p class="text-muted mb-1">
+                        <i class="fas fa-map-marker-alt me-2"></i>Lomé, Togo
+                    </p>
+                    <p class="text-muted mb-1">
+                        <i class="fas fa-phone me-2"></i>+228 XX XX XX XX
+                    </p>
+                    <p class="text-muted">
+                        <i class="fas fa-envelope me-2"></i>contact@gourmetguide.tg
+                    </p>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">&copy; 2024 GourmetGuide. {% trans "Tous droits réservés." %}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted mb-0">{% trans "Fait avec" %} <i class="fas fa-heart text-danger"></i> {% trans "au Togo" %}</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Google Maps API -->
+    {% if GOOGLE_MAPS_API_KEY %}
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places,geometry" async defer></script>
+    {% endif %}
+    
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- WebSocket pour les notifications temps réel -->
+    {% if user.is_authenticated %}
+    <script>
+        // Configuration WebSocket pour les notifications
+        const notificationSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/notifications/'
+        );
+        
+        notificationSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            showNotification(data.message, data.type || 'info');
+            updateNotificationCount();
+        };
+        
+        function showNotification(message, type) {
+            // Afficher une notification toast
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            const toastContainer = document.getElementById('toast-container') || createToastContainer();
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+        
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+            return container;
+        }
+        
+        function updateNotificationCount() {
+            fetch('/api/notifications/unread-count/')
+                .then(response => response.json())
+                .then(data => {
+                    const countElement = document.getElementById('notification-count');
+                    if (countElement) {
+                        countElement.textContent = data.count;
+                        countElement.style.display = data.count > 0 ? 'inline' : 'none';
+                    }
+                });
+        }
+        
+        // Mettre à jour le compteur au chargement
+        updateNotificationCount();
+    </script>
+    {% endif %}
+</body>
+</html>

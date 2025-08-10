@@ -1,0 +1,427 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Mes commandes" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .orders-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .order-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    
+    .order-status {
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .order-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .order-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1rem;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0.2rem;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #dee2e6;
+    }
+    
+    .timeline-item.active::before {
+        background: var(--primary-color);
+    }
+    
+    .timeline-item.completed::before {
+        background: var(--success-color);
+    }
+    
+    .filter-pills .btn {
+        border-radius: 25px;
+        margin: 0.2rem;
+    }
+    
+    .order-items {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .restaurant-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .restaurant-link:hover {
+        color: var(--secondary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="orders-header p-4 mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>{% trans "Mes commandes" %}</h2>
+                <p class="mb-0 mt-1 opacity-75">{% trans "Suivez vos commandes en temps réel" %}</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'restaurants:list' %}" class="btn btn-light">
+                    <i class="fas fa-plus me-1"></i>{% trans "Nouvelle commande" %}
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filtres rapides -->
+        <div class="filter-pills mt-3">
+            <button class="btn btn-light btn-sm active" data-status="all">
+                <i class="fas fa-list me-1"></i>{% trans "Toutes" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-status="pending">
+                <i class="fas fa-clock me-1"></i>{% trans "En attente" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-status="confirmed">
+                <i class="fas fa-check me-1"></i>{% trans "Confirmées" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-status="preparing">
+                <i class="fas fa-utensils me-1"></i>{% trans "En préparation" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-status="ready">
+                <i class="fas fa-box me-1"></i>{% trans "Prêtes" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-status="delivered">
+                <i class="fas fa-check-circle me-1"></i>{% trans "Livrées" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des commandes -->
+    <div id="ordersList">
+        {% for order in orders %}
+        <div class="order-card card order-item" data-status="{{ order.status }}">
+            <div class="card-body p-4">
+                <div class="row">
+                    <!-- Informations principales -->
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="mb-1">
+                                    {% trans "Commande" %} #{{ order.order_number }}
+                                    <span class="badge order-status 
+                                        {% if order.status == 'pending' %}bg-warning
+                                        {% elif order.status == 'confirmed' %}bg-info
+                                        {% elif order.status == 'preparing' %}bg-primary
+                                        {% elif order.status == 'ready' %}bg-success
+                                        {% elif order.status == 'out_for_delivery' %}bg-warning
+                                        {% elif order.status == 'delivered' %}bg-success
+                                        {% elif order.status == 'cancelled' %}bg-danger
+                                        {% else %}bg-secondary{% endif %} ms-2">
+                                        {% if order.status == 'pending' %}{% trans "En attente" %}
+                                        {% elif order.status == 'confirmed' %}{% trans "Confirmée" %}
+                                        {% elif order.status == 'preparing' %}{% trans "En préparation" %}
+                                        {% elif order.status == 'ready' %}{% trans "Prête" %}
+                                        {% elif order.status == 'out_for_delivery' %}{% trans "En livraison" %}
+                                        {% elif order.status == 'delivered' %}{% trans "Livrée" %}
+                                        {% elif order.status == 'cancelled' %}{% trans "Annulée" %}
+                                        {% else %}{{ order.status|capfirst }}{% endif %}
+                                    </span>
+                                </h5>
+                                <p class="text-muted mb-1">
+                                    <a href="{% url 'restaurants:detail' order.restaurant.pk %}" class="restaurant-link">
+                                        <i class="fas fa-utensils me-1"></i>{{ order.restaurant.name }}
+                                    </a>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>{{ order.created_at|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            
+                            <div class="text-end">
+                                <h4 class="text-primary mb-0">{{ order.total_amount }} FCFA</h4>
+                                <small class="text-muted">{{ order.items.count }} {% trans "article(s)" %}</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Articles de la commande -->
+                        <div class="order-items mb-3">
+                            {% for item in order.items.all %}
+                            <div class="d-flex justify-content-between align-items-center py-1">
+                                <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+                                <span class="text-muted">{{ item.subtotal }} FCFA</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Adresse de livraison -->
+                        <div class="mb-3">
+                            <strong>{% trans "Livraison à" %}:</strong><br>
+                            <i class="fas fa-map-marker-alt me-1 text-muted"></i>{{ order.delivery_address }}
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline de statut -->
+                    <div class="col-md-4">
+                        <h6 class="mb-3">{% trans "Suivi de commande" %}</h6>
+                        <div class="order-timeline">
+                            <div class="timeline-item {% if order.status != 'cancelled' %}completed{% endif %}">
+                                <strong>{% trans "Commande passée" %}</strong><br>
+                                <small class="text-muted">{{ order.created_at|date:"H:i" }}</small>
+                            </div>
+                            
+                            <div class="timeline-item {% if order.status in 'confirmed,preparing,ready,out_for_delivery,delivered' %}completed{% elif order.status == 'confirmed' %}active{% endif %}">
+                                <strong>{% trans "Confirmée" %}</strong><br>
+                                <small class="text-muted">
+                                    {% if order.confirmed_at %}
+                                        {{ order.confirmed_at|date:"H:i" }}
+                                    {% else %}
+                                        {% trans "En attente" %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            
+                            <div class="timeline-item {% if order.status in 'preparing,ready,out_for_delivery,delivered' %}completed{% elif order.status == 'preparing' %}active{% endif %}">
+                                <strong>{% trans "En préparation" %}</strong><br>
+                                <small class="text-muted">
+                                    {% if order.status in 'preparing,ready,out_for_delivery,delivered' %}
+                                        {% trans "En cours" %}
+                                    {% else %}
+                                        {% trans "En attente" %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            
+                            <div class="timeline-item {% if order.status in 'out_for_delivery,delivered' %}completed{% elif order.status == 'ready' %}active{% endif %}">
+                                <strong>{% trans "En livraison" %}</strong><br>
+                                <small class="text-muted">
+                                    {% if order.status in 'out_for_delivery,delivered' %}
+                                        {% trans "En cours" %}
+                                    {% else %}
+                                        {% trans "En attente" %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            
+                            <div class="timeline-item {% if order.status == 'delivered' %}completed{% endif %}">
+                                <strong>{% trans "Livrée" %}</strong><br>
+                                <small class="text-muted">
+                                    {% if order.delivered_at %}
+                                        {{ order.delivered_at|date:"H:i" }}
+                                    {% else %}
+                                        {% trans "En attente" %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'orders:detail' order.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>{% trans "Détails" %}
+                        </a>
+                        
+                        {% if order.status in 'out_for_delivery,delivered' %}
+                        <a href="{% url 'orders:track' order.pk %}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-map-marker-alt me-1"></i>{% trans "Suivre" %}
+                        </a>
+                        {% endif %}
+                        
+                        {% if order.status == 'delivered' %}
+                        <a href="#" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-star me-1"></i>{% trans "Évaluer" %}
+                        </a>
+                        {% endif %}
+                        
+                        {% if order.status in 'pending,confirmed' %}
+                        <button class="btn btn-outline-danger btn-sm" onclick="cancelOrder('{{ order.pk }}')">
+                            <i class="fas fa-times me-1"></i>{% trans "Annuler" %}
+                        </button>
+                        {% endif %}
+                        
+                        <a href="#" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-redo me-1"></i>{% trans "Recommander" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+            <h4>{% trans "Aucune commande" %}</h4>
+            <p class="text-muted mb-4">{% trans "Vous n'avez pas encore passé de commande" %}</p>
+            <a href="{% url 'restaurants:list' %}" class="btn btn-primary">
+                <i class="fas fa-utensils me-1"></i>{% trans "Découvrir les restaurants" %}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="{% trans 'Navigation des commandes' %}" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">{% trans "Premier" %}</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Précédent" %}</a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Suivant" %}</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">{% trans "Dernier" %}</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('[data-status]');
+    const orderItems = document.querySelectorAll('.order-item');
+    
+    // Filtrage par statut
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const status = this.dataset.status;
+            
+            // Mettre à jour les boutons actifs
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('btn-outline-light');
+                btn.classList.remove('btn-light');
+            });
+            this.classList.add('active');
+            this.classList.remove('btn-outline-light');
+            this.classList.add('btn-light');
+            
+            // Filtrer les commandes
+            orderItems.forEach(item => {
+                if (status === 'all' || item.dataset.status === status) {
+                    item.style.display = 'block';
+                    item.style.animation = 'fadeInUp 0.3s ease';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Fonction d'annulation de commande
+    window.cancelOrder = function(orderId) {
+        if (confirm('{% trans "Êtes-vous sûr de vouloir annuler cette commande ?" %}')) {
+            // Appel API pour annuler la commande
+            fetch(`/api/orders/${orderId}/cancel/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    GourmetGuide.notifications.show('success', '{% trans "Commande annulée avec succès" %}');
+                    location.reload();
+                } else {
+                    GourmetGuide.notifications.show('error', data.message || '{% trans "Erreur lors de l\'annulation" %}');
+                }
+            })
+            .catch(error => {
+                GourmetGuide.notifications.show('error', '{% trans "Erreur de connexion" %}');
+            });
+        }
+    };
+    
+    // Animation d'entrée
+    orderItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.3s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Actualisation automatique du statut (toutes les 30 secondes)
+    if (orderItems.length > 0) {
+        setInterval(() => {
+            const activeOrders = document.querySelectorAll('[data-status="pending"], [data-status="confirmed"], [data-status="preparing"], [data-status="ready"], [data-status="out_for_delivery"]');
+            if (activeOrders.length > 0) {
+                // Actualiser les statuts via API
+                fetch('/api/orders/status-updates/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Mettre à jour les statuts si nécessaire
+                    if (data.updates && data.updates.length > 0) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.log('Erreur lors de la vérification des statuts:', error);
+                });
+            }
+        }, 30000);
+    }
+});
+</script>
+{% endblock %}

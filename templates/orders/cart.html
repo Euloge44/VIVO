@@ -1,0 +1,493 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Mon panier" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cart-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .cart-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .cart-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1.5rem 0;
+        transition: all 0.3s ease;
+    }
+    
+    .cart-item:last-child {
+        border-bottom: none;
+    }
+    
+    .cart-item:hover {
+        background: #f8f9fa;
+        border-radius: 10px;
+        margin: 0 -1rem;
+        padding: 1.5rem 1rem;
+    }
+    
+    .item-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 10px;
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 1.5rem;
+    }
+    
+    .quantity-controls {
+        border: 1px solid #dee2e6;
+        border-radius: 25px;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .quantity-controls button {
+        border: none;
+        background: white;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .quantity-controls input {
+        border: none;
+        text-align: center;
+        width: 60px;
+        height: 35px;
+        background: #f8f9fa;
+    }
+    
+    .summary-card {
+        position: sticky;
+        top: 100px;
+    }
+    
+    .promo-code-input {
+        border-radius: 25px;
+    }
+    
+    .checkout-btn {
+        border-radius: 25px;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+    }
+    
+    .empty-cart {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+    
+    .restaurant-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- En-tête -->
+    <div class="cart-header p-4 text-center">
+        <h1 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>{% trans "Mon panier" %}</h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Vérifiez vos articles avant de commander" %}</p>
+    </div>
+
+    {% if cart_items %}
+    <div class="row">
+        <!-- Articles du panier -->
+        <div class="col-lg-8">
+            <div class="cart-card card">
+                <div class="card-body p-4">
+                    <!-- Informations du restaurant -->
+                    {% if cart.restaurant %}
+                    <div class="restaurant-info">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                {% if cart.restaurant.logo %}
+                                <img src="{{ cart.restaurant.logo }}" alt="{{ cart.restaurant.name }}" 
+                                     class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-primary bg-opacity-10 text-primary rounded d-flex align-items-center justify-content-center"
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h5 class="mb-1">{{ cart.restaurant.name }}</h5>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-clock me-1"></i>30-45 min • 
+                                    <i class="fas fa-truck me-1"></i>{{ cart.restaurant.delivery_fee }} FCFA
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Articles -->
+                    {% for item in cart_items %}
+                    <div class="cart-item" data-item-id="{{ item.id }}">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="item-image">
+                                    {% if item.menu_item.image %}
+                                    <img src="{{ item.menu_item.image }}" alt="{{ item.menu_item.name }}" 
+                                         class="w-100 h-100" style="object-fit: cover; border-radius: 10px;">
+                                    {% else %}
+                                    <i class="fas fa-utensils"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col">
+                                <h5 class="mb-1">{{ item.menu_item.name }}</h5>
+                                <p class="text-muted mb-2">{{ item.menu_item.description|truncatechars:80 }}</p>
+                                <span class="fw-bold text-primary">{{ item.menu_item.price }} FCFA</span>
+                            </div>
+                            
+                            <div class="col-auto">
+                                <div class="quantity-controls">
+                                    <button class="btn btn-sm" onclick="updateQuantity('{{ item.id }}', {{ item.quantity|add:'-1' }})">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" value="{{ item.quantity }}" min="1" max="10" 
+                                           id="qty-{{ item.id }}" onchange="updateQuantity('{{ item.id }}', this.value)">
+                                    <button class="btn btn-sm" onclick="updateQuantity('{{ item.id }}', {{ item.quantity|add:'1' }})">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="col-auto text-end">
+                                <h5 class="mb-1">{{ item.subtotal }} FCFA</h5>
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeItem('{{ item.id }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Actions sur le panier -->
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{% url 'restaurants:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>{% trans "Continuer mes achats" %}
+                        </a>
+                        <button class="btn btn-outline-danger" onclick="clearCart()">
+                            <i class="fas fa-trash me-1"></i>{% trans "Vider le panier" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Résumé et checkout -->
+        <div class="col-lg-4">
+            <div class="summary-card cart-card card">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4">
+                        <i class="fas fa-receipt me-2 text-primary"></i>{% trans "Résumé de la commande" %}
+                    </h5>
+                    
+                    <!-- Code promo -->
+                    <div class="mb-4">
+                        <label class="form-label">{% trans "Code promo" %}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control promo-code-input" 
+                                   id="promoCode" placeholder="{% trans 'Entrez votre code' %}">
+                            <button class="btn btn-outline-primary" onclick="applyPromoCode()">
+                                {% trans "Appliquer" %}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Détails de la commande -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{% trans "Sous-total" %} ({{ cart_items.count }} {% trans "articles" %}):</span>
+                            <span id="subtotal">{{ cart.subtotal }} FCFA</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{% trans "Frais de livraison" %}:</span>
+                            <span id="delivery-fee">{{ cart.restaurant.delivery_fee|default:0 }} FCFA</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2" id="discount-row" style="display: none;">
+                            <span class="text-success">{% trans "Réduction" %}:</span>
+                            <span class="text-success" id="discount-amount">-0 FCFA</span>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex justify-content-between fw-bold fs-5">
+                            <span>{% trans "Total" %}:</span>
+                            <span class="text-primary" id="total">{{ cart.total }} FCFA</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Minimum de commande -->
+                    {% if cart.restaurant.min_order_amount %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {% trans "Commande minimum" %}: {{ cart.restaurant.min_order_amount }} FCFA
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Bouton de commande -->
+                    <button class="btn btn-primary checkout-btn w-100 mb-3" onclick="proceedToCheckout()">
+                        <i class="fas fa-credit-card me-2"></i>{% trans "Passer la commande" %}
+                    </button>
+                    
+                    <!-- Méthodes de paiement acceptées -->
+                    <div class="text-center">
+                        <small class="text-muted d-block mb-2">{% trans "Paiements acceptés" %}</small>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-credit-card me-1"></i>Visa
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-mobile-alt me-1"></i>Tmoney
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-mobile-alt me-1"></i>Flooz
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-money-bill me-1"></i>Espèces
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Livraison estimée -->
+            <div class="cart-card card mt-3">
+                <div class="card-body p-3">
+                    <h6 class="card-title">
+                        <i class="fas fa-truck me-2 text-success"></i>{% trans "Livraison estimée" %}
+                    </h6>
+                    <p class="mb-0">
+                        <i class="fas fa-clock me-1 text-muted"></i>
+                        30-45 minutes
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Panier vide -->
+    <div class="cart-card card">
+        <div class="card-body">
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-4"></i>
+                <h3>{% trans "Votre panier est vide" %}</h3>
+                <p class="text-muted mb-4">{% trans "Découvrez nos restaurants et ajoutez des plats délicieux à votre panier" %}</p>
+                <a href="{% url 'restaurants:list' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-utensils me-2"></i>{% trans "Découvrir les restaurants" %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fonctions de gestion du panier
+    window.updateQuantity = function(itemId, newQuantity) {
+        if (newQuantity < 1) {
+            removeItem(itemId);
+            return;
+        }
+        
+        // Appel API pour mettre à jour la quantité
+        fetch('/api/orders/cart/update/', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                quantity: newQuantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Recharger pour mettre à jour les totaux
+            } else {
+                GourmetGuide.notifications.show('error', data.message || '{% trans "Erreur lors de la mise à jour" %}');
+            }
+        })
+        .catch(error => {
+            GourmetGuide.notifications.show('error', '{% trans "Erreur de connexion" %}');
+        });
+    };
+    
+    window.removeItem = function(itemId) {
+        if (confirm('{% trans "Êtes-vous sûr de vouloir supprimer cet article ?" %}')) {
+            fetch('/api/orders/cart/remove/', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify({
+                    item_id: itemId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Supprimer l'élément du DOM avec animation
+                    const item = document.querySelector(`[data-item-id="${itemId}"]`);
+                    if (item) {
+                        item.style.transition = 'all 0.3s ease';
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(100px)';
+                        setTimeout(() => {
+                            location.reload();
+                        }, 300);
+                    }
+                } else {
+                    GourmetGuide.notifications.show('error', data.message || '{% trans "Erreur lors de la suppression" %}');
+                }
+            })
+            .catch(error => {
+                GourmetGuide.notifications.show('error', '{% trans "Erreur de connexion" %}');
+            });
+        }
+    };
+    
+    window.clearCart = function() {
+        if (confirm('{% trans "Êtes-vous sûr de vouloir vider votre panier ?" %}')) {
+            fetch('/api/orders/cart/clear/', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    GourmetGuide.notifications.show('error', data.message || '{% trans "Erreur lors du vidage du panier" %}');
+                }
+            })
+            .catch(error => {
+                GourmetGuide.notifications.show('error', '{% trans "Erreur de connexion" %}');
+            });
+        }
+    };
+    
+    window.applyPromoCode = function() {
+        const promoCode = document.getElementById('promoCode').value.trim();
+        if (!promoCode) {
+            GourmetGuide.notifications.show('warning', '{% trans "Veuillez entrer un code promo" %}');
+            return;
+        }
+        
+        fetch('/api/orders/coupons/validate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({
+                code: promoCode
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                // Appliquer la réduction
+                const discountRow = document.getElementById('discount-row');
+                const discountAmount = document.getElementById('discount-amount');
+                const total = document.getElementById('total');
+                
+                discountRow.style.display = 'flex';
+                discountAmount.textContent = `-${data.discount_amount} FCFA`;
+                
+                // Recalculer le total
+                const currentTotal = parseFloat(total.textContent.replace(' FCFA', ''));
+                const newTotal = currentTotal - data.discount_amount;
+                total.textContent = `${newTotal} FCFA`;
+                
+                GourmetGuide.notifications.show('success', '{% trans "Code promo appliqué avec succès" %}');
+            } else {
+                GourmetGuide.notifications.show('error', data.message || '{% trans "Code promo invalide" %}');
+            }
+        })
+        .catch(error => {
+            GourmetGuide.notifications.show('error', '{% trans "Erreur lors de la validation du code" %}');
+        });
+    };
+    
+    window.proceedToCheckout = function() {
+        // Vérifier le minimum de commande
+        const currentTotal = parseFloat(document.getElementById('subtotal').textContent.replace(' FCFA', ''));
+        const minOrder = {{ cart.restaurant.min_order_amount|default:0 }};
+        
+        if (currentTotal < minOrder) {
+            GourmetGuide.notifications.show('warning', 
+                `{% trans "Commande minimum requise" %}: ${minOrder} FCFA`);
+            return;
+        }
+        
+        // Rediriger vers la page de checkout
+        window.location.href = '{% url "orders:create" %}';
+    };
+    
+    // Animation d'entrée
+    const cartItems = document.querySelectorAll('.cart-item');
+    cartItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateX(-20px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.4s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateX(0)';
+        }, index * 100 + 200);
+    });
+    
+    // Validation en temps réel de la quantité
+    const qtyInputs = document.querySelectorAll('input[type="number"]');
+    qtyInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const value = parseInt(this.value);
+            if (value < 1) {
+                this.value = 1;
+            } else if (value > 10) {
+                this.value = 10;
+                GourmetGuide.notifications.show('warning', '{% trans "Quantité maximum: 10" %}');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

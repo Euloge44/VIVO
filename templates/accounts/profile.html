@@ -1,0 +1,231 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Mon profil" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid white;
+        object-fit: cover;
+    }
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <!-- Profil utilisateur -->
+        <div class="profile-header text-center">
+            <img src="{{ user_profile.profile_image|default:'/static/images/default-avatar.png' }}" 
+                 alt="Avatar" class="profile-avatar mb-3">
+            <h3>{{ user_profile.get_full_name }}</h3>
+            <p class="mb-1">{{ user_profile.get_user_type_display }}</p>
+            <p class="mb-0"><i class="fas fa-envelope me-2"></i>{{ user_profile.email }}</p>
+            {% if user_profile.phone %}
+            <p class="mb-0"><i class="fas fa-phone me-2"></i>{{ user_profile.phone }}</p>
+            {% endif %}
+        </div>
+        
+        <!-- Actions rapides -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Actions rapides" %}</h5>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>{% trans "Modifier le profil" %}
+                    </a>
+                    <a href="{% url 'accounts:preferences' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>{% trans "Préférences" %}
+                    </a>
+                    {% if user_profile.user_type == 'client' %}
+                    <a href="{% url 'loyalty:dashboard' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-star me-2"></i>{% trans "Fidélité" %}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <!-- Statistiques -->
+        <div class="row g-3 mb-4">
+            {% if user_profile.user_type == 'client' %}
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Commandes" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Points fidélité" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Avis donnés" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0 F</div>
+                    <small class="text-muted">{% trans "Total dépensé" %}</small>
+                </div>
+            </div>
+            {% elif user_profile.user_type == 'restaurant' %}
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Commandes reçues" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0 F</div>
+                    <small class="text-muted">{% trans "Chiffre d'affaires" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Articles menu" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Note moyenne" %}</small>
+                </div>
+            </div>
+            {% elif user_profile.user_type == 'delivery' %}
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Livraisons" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0 F</div>
+                    <small class="text-muted">{% trans "Gains" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0</div>
+                    <small class="text-muted">{% trans "Note moyenne" %}</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-number">0 km</div>
+                    <small class="text-muted">{% trans "Distance parcourue" %}</small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Informations détaillées -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{% trans "Informations détaillées" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>{% trans "Informations personnelles" %}</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>{% trans "Nom d'utilisateur" %}:</strong></td>
+                                <td>{{ user_profile.username }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Email" %}:</strong></td>
+                                <td>{{ user_profile.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Téléphone" %}:</strong></td>
+                                <td>{{ user_profile.phone|default:"Non renseigné" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Langue" %}:</strong></td>
+                                <td>{{ user_profile.get_language_preference_display }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Membre depuis" %}:</strong></td>
+                                <td>{{ user_profile.date_joined|date:"d F Y" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>{% trans "Adresse" %}</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>{% trans "Adresse" %}:</strong></td>
+                                <td>{{ user_profile.address|default:"Non renseignée" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Ville" %}:</strong></td>
+                                <td>{{ user_profile.city|default:"Non renseignée" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Code postal" %}:</strong></td>
+                                <td>{{ user_profile.postal_code|default:"Non renseigné" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>{% trans "Pays" %}:</strong></td>
+                                <td>{{ user_profile.country|default:"Togo" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activité récente -->
+        {% if user_profile.user_type == 'client' %}
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{% trans "Commandes récentes" %}</h5>
+                <a href="{% url 'orders:list' %}" class="btn btn-sm btn-outline-primary">
+                    {% trans "Voir toutes" %}
+                </a>
+            </div>
+            <div class="card-body">
+                <p class="text-muted text-center py-4">
+                    <i class="fas fa-shopping-cart fa-2x mb-3 d-block"></i>
+                    {% trans "Aucune commande pour le moment" %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

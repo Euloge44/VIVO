@@ -1,0 +1,40 @@
+INFO 2025-08-10 22:17:29,274 autoreload 6982 139970396422400 Watching for file changes with StatReloader
+INFO 2025-08-10 22:18:27,933 autoreload 6982 139970396422400 /workspace/restaurants/views.py changed, reloading.
+INFO 2025-08-10 22:18:28,249 autoreload 7208 139709720166656 Watching for file changes with StatReloader
+INFO 2025-08-10 22:18:47,537 autoreload 7208 139709720166656 /workspace/orders/views.py changed, reloading.
+INFO 2025-08-10 22:18:47,847 autoreload 7292 140025566449920 Watching for file changes with StatReloader
+INFO 2025-08-10 22:18:58,033 autoreload 7292 140025566449920 /workspace/delivery/views.py changed, reloading.
+INFO 2025-08-10 22:18:58,347 autoreload 7372 140238480617728 Watching for file changes with StatReloader
+INFO 2025-08-10 22:19:07,521 autoreload 7372 140238480617728 /workspace/payments/views.py changed, reloading.
+INFO 2025-08-10 22:19:07,820 autoreload 7422 140302892220672 Watching for file changes with StatReloader
+INFO 2025-08-10 22:19:21,028 autoreload 7422 140302892220672 /workspace/reviews/views.py changed, reloading.
+INFO 2025-08-10 22:19:21,336 autoreload 7454 140634753859840 Watching for file changes with StatReloader
+INFO 2025-08-10 22:19:37,576 autoreload 7454 140634753859840 /workspace/loyalty/views.py changed, reloading.
+INFO 2025-08-10 22:19:37,887 autoreload 7517 140295290810624 Watching for file changes with StatReloader
+INFO 2025-08-10 22:19:53,116 autoreload 7517 140295290810624 /workspace/notifications/views.py changed, reloading.
+INFO 2025-08-10 22:19:53,426 autoreload 7626 139694975959296 Watching for file changes with StatReloader
+INFO 2025-08-10 22:20:02,607 autoreload 7626 139694975959296 /workspace/analytics/views.py changed, reloading.
+INFO 2025-08-10 22:20:02,930 autoreload 7676 140395478995200 Watching for file changes with StatReloader
+INFO 2025-08-10 22:21:30,261 autoreload 7900 140680783790336 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:07,436 autoreload 7900 140680783790336 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:07,755 autoreload 8340 139906823110912 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:08,908 autoreload 8340 139906823110912 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:09,210 autoreload 8354 139672877949184 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:11,370 autoreload 8354 139672877949184 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:11,682 autoreload 8364 140144260579584 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:19,903 autoreload 8364 140144260579584 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:20,212 autoreload 8400 140257572262144 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:22,374 autoreload 8400 140257572262144 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:22,667 autoreload 8429 140177426866432 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:23,849 autoreload 8429 140177426866432 /workspace/accounts/admin.py changed, reloading.
+INFO 2025-08-10 22:23:24,155 autoreload 8431 140037189865728 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:27,357 autoreload 8431 140037189865728 /workspace/gourmetguide/urls.py changed, reloading.
+INFO 2025-08-10 22:23:27,674 autoreload 8454 140504522195200 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:32,459 autoreload 8487 140097812779264 Watching for file changes with StatReloader
+INFO 2025-08-10 22:23:36,467 basehttp 8487 140097748727488 "GET / HTTP/1.1" 200 15895
+INFO 2025-08-10 22:25:23,965 autoreload 8487 140097812779264 /workspace/gourmetguide/urls.py changed, reloading.
+INFO 2025-08-10 22:25:24,309 autoreload 8931 140384681615616 Watching for file changes with StatReloader
+INFO 2025-08-10 22:25:29,692 autoreload 8995 140510056706304 Watching for file changes with StatReloader
+INFO 2025-08-10 22:38:36,000 autoreload 11333 140147676541184 Watching for file changes with StatReloader
+INFO 2025-08-10 22:43:28,645 basehttp 11333 140147611440832 "GET / HTTP/1.1" 200 15895
+INFO 2025-08-10 22:43:43,977 autoreload 12048 140099302887680 Watching for file changes with StatReloader

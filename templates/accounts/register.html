@@ -1,0 +1,209 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+    {% if user_type == 'restaurant' %}
+        {% trans "Inscription Restaurant" %}
+    {% elif user_type == 'delivery' %}
+        {% trans "Inscription Livreur" %}
+    {% else %}
+        {% trans "Inscription Client" %}
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        max-width: 600px;
+        margin: 2rem auto;
+    }
+    .register-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .register-header {
+        {% if user_type == 'restaurant' %}
+            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+        {% elif user_type == 'delivery' %}
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        {% else %}
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        {% endif %}
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 2rem;
+        text-align: center;
+    }
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    .step {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0.5rem;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    .step.active {
+        {% if user_type == 'restaurant' %}
+            background: #ffc107;
+        {% elif user_type == 'delivery' %}
+            background: #17a2b8;
+        {% else %}
+            background: #28a745;
+        {% endif %}
+        color: white;
+    }
+    .step.completed {
+        background: #28a745;
+        color: white;
+    }
+    .form-section {
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="card register-card">
+        <div class="register-header">
+            <h3 class="mb-0">
+                {% if user_type == 'restaurant' %}
+                    <i class="fas fa-store me-2"></i>{% trans "Inscription Restaurant" %}
+                {% elif user_type == 'delivery' %}
+                    <i class="fas fa-motorcycle me-2"></i>{% trans "Inscription Livreur" %}
+                {% else %}
+                    <i class="fas fa-user me-2"></i>{% trans "Inscription Client" %}
+                {% endif %}
+            </h3>
+            <p class="mb-0 mt-2 opacity-75">
+                {% if user_type == 'restaurant' %}
+                    {% trans "Rejoignez notre réseau de restaurants partenaires" %}
+                {% elif user_type == 'delivery' %}
+                    {% trans "Devenez livreur et gagnez de l'argent" %}
+                {% else %}
+                    {% trans "Créez votre compte pour commander facilement" %}
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="card-body p-4">
+            <!-- Indicateur d'étapes -->
+            <div class="step-indicator">
+                <div class="step active">1</div>
+                <div class="step">2</div>
+                {% if user_type != 'client' %}
+                <div class="step">3</div>
+                {% endif %}
+            </div>
+            
+            <!-- Formulaire d'inscription -->
+            <form method="post" id="registrationForm">
+                {% csrf_token %}
+                {% crispy form %}
+            </form>
+            
+            <div class="text-center mt-4">
+                <p class="mb-0">
+                    {% trans "Vous avez déjà un compte ?" %}
+                    <a href="{% url 'accounts:login' %}" class="text-decoration-none">
+                        {% trans "Connectez-vous" %}
+                    </a>
+                </p>
+                <p class="mt-2">
+                    <a href="{% url 'accounts:register_choice' %}" class="text-muted text-decoration-none">
+                        <small><i class="fas fa-arrow-left me-1"></i>{% trans "Changer le type de compte" %}</small>
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations supplémentaires selon le type -->
+    {% if user_type == 'restaurant' %}
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-info-circle text-warning me-2"></i>
+                {% trans "Informations importantes" %}
+            </h5>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Votre compte sera vérifié sous 24-48h" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Commission de 8% sur chaque commande" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Paiements hebdomadaires" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Support technique gratuit" %}</li>
+            </ul>
+        </div>
+    </div>
+    {% elif user_type == 'delivery' %}
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-info-circle text-info me-2"></i>
+                {% trans "Avantages livreur" %}
+            </h5>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Horaires flexibles" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Paiement immédiat après livraison" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Bonus de performance" %}</li>
+                <li><i class="fas fa-check text-success me-2"></i>{% trans "Assurance incluse" %}</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animation d'entrée
+        const card = document.querySelector('.register-card');
+        card.style.transform = 'translateY(20px)';
+        card.style.opacity = '0';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.4s ease';
+            card.style.transform = 'translateY(0)';
+            card.style.opacity = '1';
+        }, 100);
+        
+        // Validation du formulaire
+        const form = document.getElementById('registrationForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>{% trans "Création du compte..." %}';
+                    submitBtn.disabled = true;
+                }
+            });
+        }
+        
+        // Validation du téléphone
+        const phoneField = document.getElementById('id_phone');
+        if (phoneField) {
+            phoneField.addEventListener('input', function() {
+                const phone = this.value;
+                if (phone && !GourmetGuide.utils.isValidPhone(phone)) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                    if (phone) this.classList.add('is-valid');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

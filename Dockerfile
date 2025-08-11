@@ -31,14 +31,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier les fichiers de requirements
-COPY requirements.txt requirements_base.txt ./
+COPY requirements_fixed.txt requirements_base.txt ./
 
 # Installer les dépendances Python
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements_base.txt
-
-# Essayer d'installer Pillow et psycopg2-binary
-RUN pip install --no-cache-dir Pillow psycopg2-binary || echo "Pillow/psycopg2 installation failed, continuing..."
+RUN pip install --no-cache-dir -r requirements_fixed.txt
 
 # Copier le code de l'application
 COPY . .

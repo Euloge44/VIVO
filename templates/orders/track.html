@@ -1,0 +1,929 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Suivi de commande" %} #{{ order.order_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tracking-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .tracking-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .status-timeline {
+        position: relative;
+        padding: 2rem 0;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding: 1rem 0 1rem 4rem;
+        border-left: 3px solid #e9ecef;
+    }
+    
+    .timeline-item.active {
+        border-left-color: var(--primary-color);
+    }
+    
+    .timeline-item.completed {
+        border-left-color: #28a745;
+    }
+    
+    .timeline-icon {
+        position: absolute;
+        left: -12px;
+        top: 1.5rem;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e9ecef;
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+    
+    .timeline-item.active .timeline-icon {
+        background: var(--primary-color);
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    .timeline-item.completed .timeline-icon {
+        background: #28a745;
+        color: white;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+    }
+    
+    .order-info-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border: none;
+    }
+    
+    .delivery-map {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        min-height: 400px;
+    }
+    
+    .delivery-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .eta-display {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .eta-time {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    
+    .delivery-person-card {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-confirmed {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-preparing {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-ready {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-out-for-delivery {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-delivered {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .live-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #28a745;
+        border-radius: 50%;
+        animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0.3; }
+    }
+    
+    .connection-status {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        z-index: 1000;
+        transition: all 0.3s ease;
+    }
+    
+    .connection-status.connected {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .connection-status.disconnected {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tracking-container">
+    <!-- En-tête -->
+    <div class="tracking-header p-4 text-center">
+        <h1 class="mb-0">
+            <i class="fas fa-truck me-2"></i>{% trans "Suivi de commande" %}
+        </h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Commande" %} #{{ order.order_number }}</p>
+    </div>
+
+    <div class="row">
+        <!-- Informations de commande et timeline -->
+        <div class="col-lg-5">
+            <!-- Temps estimé -->
+            <div class="eta-display" id="eta-card">
+                <h5 class="mb-0">{% trans "Temps de livraison estimé" %}</h5>
+                <div class="eta-time" id="eta-time">
+                    {% if order.delivery.estimated_delivery_time %}
+                        {{ order.delivery.estimated_delivery_time|timeuntil }}
+                    {% else %}
+                        30-45 min
+                    {% endif %}
+                </div>
+                <p class="mb-0 opacity-75" id="eta-description">
+                    {% trans "Estimation basée sur le trafic actuel" %}
+                </p>
+            </div>
+            
+            <!-- Informations de la commande -->
+            <div class="order-info-card card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-receipt me-2 text-primary"></i>{% trans "Détails de la commande" %}
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>{% trans "Restaurant" %}:</strong><br>
+                            <a href="{% url 'restaurants:detail' order.restaurant.id %}" class="text-decoration-none">
+                                {{ order.restaurant.name }}
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <strong>{% trans "Total" %}:</strong><br>
+                            <span class="h6 text-success">{{ order.total_amount|floatformat:0 }} FCFA</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>{% trans "Statut" %}:</strong><br>
+                            <span class="status-badge status-{{ order.status }}" id="order-status-badge">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <strong>{% trans "Paiement" %}:</strong><br>
+                            <span class="badge {% if order.payment_status == 'paid' %}bg-success{% else %}bg-warning{% endif %}">
+                                {{ order.get_payment_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Adresse de livraison -->
+                    <div class="delivery-info">
+                        <strong>{% trans "Adresse de livraison" %}:</strong><br>
+                        <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                        {{ order.delivery_address|default:user.address }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Timeline de statut -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-list-ol me-2 text-primary"></i>{% trans "Progression" %}
+                        <span class="live-indicator ms-2" id="live-indicator"></span>
+                        <small class="text-muted">{% trans "En direct" %}</small>
+                    </h5>
+                    
+                    <div class="status-timeline" id="status-timeline">
+                        <div class="timeline-item {% if order.status == 'pending' %}active{% elif order.status != 'pending' %}completed{% endif %}" id="timeline-pending">
+                            <div class="timeline-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h6>{% trans "Commande reçue" %}</h6>
+                            <p class="text-muted small">{{ order.created_at|date:"H:i" }}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'confirmed' %}active{% elif order.status in 'preparing,ready,assigned_to_delivery,out_for_delivery,delivered' %}completed{% endif %}" id="timeline-confirmed">
+                            <div class="timeline-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h6>{% trans "Commande confirmée" %}</h6>
+                            <p class="text-muted small" id="confirmed-time">{% trans "En attente..." %}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'preparing' %}active{% elif order.status in 'ready,assigned_to_delivery,out_for_delivery,delivered' %}completed{% endif %}" id="timeline-preparing">
+                            <div class="timeline-icon">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                            <h6>{% trans "Préparation en cours" %}</h6>
+                            <p class="text-muted small" id="preparing-time">{% trans "En attente..." %}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'ready' %}active{% elif order.status in 'assigned_to_delivery,out_for_delivery,delivered' %}completed{% endif %}" id="timeline-ready">
+                            <div class="timeline-icon">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <h6>{% trans "Prêt pour livraison" %}</h6>
+                            <p class="text-muted small" id="ready-time">{% trans "En attente..." %}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'assigned_to_delivery' %}active{% elif order.status in 'out_for_delivery,delivered' %}completed{% endif %}" id="timeline-assigned">
+                            <div class="timeline-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h6>{% trans "Livreur assigné" %}</h6>
+                            <p class="text-muted small" id="assigned-time">{% trans "En attente..." %}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'out_for_delivery' %}active{% elif order.status == 'delivered' %}completed{% endif %}" id="timeline-delivery">
+                            <div class="timeline-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <h6>{% trans "En cours de livraison" %}</h6>
+                            <p class="text-muted small" id="delivery-time">{% trans "En attente..." %}</p>
+                        </div>
+                        
+                        <div class="timeline-item {% if order.status == 'delivered' %}completed{% endif %}" id="timeline-delivered">
+                            <div class="timeline-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h6>{% trans "Livré" %}</h6>
+                            <p class="text-muted small" id="delivered-time">{% trans "En attente..." %}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Carte et informations de livraison -->
+        <div class="col-lg-7">
+            <!-- Informations du livreur -->
+            {% if order.delivery.delivery_person %}
+            <div class="delivery-person-card card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-tie me-2 text-primary"></i>{% trans "Votre livreur" %}
+                    </h5>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            {% if order.delivery.delivery_person.user.avatar %}
+                                <img src="{{ order.delivery.delivery_person.user.avatar.url }}" 
+                                     alt="{{ order.delivery.delivery_person.user.get_full_name }}" 
+                                     class="avatar">
+                            {% else %}
+                                <div class="avatar bg-primary d-flex align-items-center justify-content-center text-white">
+                                    {{ order.delivery.delivery_person.user.first_name.0 }}{{ order.delivery.delivery_person.user.last_name.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <h6 class="mb-1">{{ order.delivery.delivery_person.user.get_full_name }}</h6>
+                            <p class="text-muted mb-1">
+                                <i class="fas fa-star text-warning me-1"></i>
+                                {{ order.delivery.delivery_person.rating|floatformat:1 }} 
+                                ({{ order.delivery.delivery_person.total_deliveries }} livraisons)
+                            </p>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-motorcycle me-1"></i>
+                                {{ order.delivery.delivery_person.vehicle_type|title }}
+                                {{ order.delivery.delivery_person.vehicle_number }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <a href="tel:{{ order.delivery.delivery_person.user.phone }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-phone me-1"></i>{% trans "Appeler" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Carte de livraison -->
+            <div class="delivery-map">
+                {% include 'components/map.html' with map_id='deliveryMap' height='400px' show_controls=True center_lat=order.restaurant.latitude center_lng=order.restaurant.longitude zoom=14 %}
+            </div>
+            
+            <!-- Actions rapides -->
+            <div class="mt-4">
+                <div class="row g-2">
+                    <div class="col-6">
+                        {% if order.delivery.delivery_person %}
+                        <a href="tel:{{ order.delivery.delivery_person.user.phone }}" 
+                           class="btn btn-outline-primary w-100">
+                            <i class="fas fa-phone me-1"></i>{% trans "Contacter le livreur" %}
+                        </a>
+                        {% else %}
+                        <button class="btn btn-outline-secondary w-100" disabled>
+                            <i class="fas fa-user-clock me-1"></i>{% trans "Livreur en attente" %}
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <a href="tel:{{ order.restaurant.phone }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-store me-1"></i>{% trans "Contacter le restaurant" %}
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mt-2">
+                    <div class="col-6">
+                        <button class="btn btn-outline-warning w-100" onclick="reportIssue()">
+                            <i class="fas fa-exclamation-triangle me-1"></i>{% trans "Signaler un problème" %}
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        {% if order.status == 'delivered' %}
+                        <a href="{% url 'reviews:create' %}?order={{ order.id }}" class="btn btn-warning w-100">
+                            <i class="fas fa-star me-1"></i>{% trans "Évaluer" %}
+                        </a>
+                        {% else %}
+                        <button class="btn btn-outline-info w-100" onclick="shareTracking()">
+                            <i class="fas fa-share me-1"></i>{% trans "Partager" %}
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Indicateur de connexion -->
+<div class="connection-status disconnected" id="connectionStatus">
+    <i class="fas fa-wifi me-1"></i>
+    <span id="connectionText">{% trans "Connexion..." %}</span>
+</div>
+
+<!-- Modal de signalement -->
+<div class="modal fade" id="issueModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{% trans "Signaler un problème" %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="issueForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Type de problème" %}</label>
+                        <select class="form-select" id="issueType" required>
+                            <option value="">{% trans "Sélectionnez..." %}</option>
+                            <option value="delivery_delay">{% trans "Retard de livraison" %}</option>
+                            <option value="wrong_order">{% trans "Erreur de commande" %}</option>
+                            <option value="quality_issue">{% trans "Problème de qualité" %}</option>
+                            <option value="delivery_person">{% trans "Problème avec le livreur" %}</option>
+                            <option value="other">{% trans "Autre" %}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">{% trans "Description" %}</label>
+                        <textarea class="form-control" id="issueDescription" rows="3" 
+                                  placeholder="{% trans 'Décrivez le problème en détail...' %}" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {% trans "Annuler" %}
+                </button>
+                <button type="button" class="btn btn-warning" onclick="submitIssue()">
+                    <i class="fas fa-paper-plane me-1"></i>{% trans "Envoyer" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let trackingSocket = null;
+    let deliveryPersonMarker = null;
+    let routeRenderer = null;
+    let isConnected = false;
+    
+    // Données de la commande
+    const orderData = {
+        id: '{{ order.id }}',
+        status: '{{ order.status }}',
+        restaurant: {
+            name: '{{ order.restaurant.name|escapejs }}',
+            lat: {{ order.restaurant.latitude|default:0 }},
+            lng: {{ order.restaurant.longitude|default:0 }}
+        },
+        delivery_address: '{{ order.delivery_address|default:user.address|escapejs }}',
+        {% if order.delivery.delivery_person %}
+        delivery_person: {
+            name: '{{ order.delivery.delivery_person.user.get_full_name|escapejs }}',
+            phone: '{{ order.delivery.delivery_person.user.phone }}',
+            {% if order.delivery.delivery_person.current_latitude %}
+            lat: {{ order.delivery.delivery_person.current_latitude }},
+            lng: {{ order.delivery.delivery_person.current_longitude }},
+            {% endif %}
+        }
+        {% endif %}
+    };
+    
+    // Initialiser la connexion WebSocket
+    function initializeWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/orders/${orderData.id}/track/`;
+        
+        trackingSocket = new WebSocket(wsUrl);
+        
+        trackingSocket.onopen = function(event) {
+            console.log('WebSocket connecté');
+            isConnected = true;
+            updateConnectionStatus(true);
+        };
+        
+        trackingSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
+        };
+        
+        trackingSocket.onclose = function(event) {
+            console.log('WebSocket fermé');
+            isConnected = false;
+            updateConnectionStatus(false);
+            
+            // Tentative de reconnexion après 5 secondes
+            setTimeout(initializeWebSocket, 5000);
+        };
+        
+        trackingSocket.onerror = function(error) {
+            console.error('Erreur WebSocket:', error);
+            isConnected = false;
+            updateConnectionStatus(false);
+        };
+    }
+    
+    // Traiter les messages WebSocket
+    function handleWebSocketMessage(data) {
+        switch (data.type) {
+            case 'order_status':
+            case 'order_status_update':
+                updateOrderStatus(data.order);
+                break;
+                
+            case 'delivery_location':
+                updateDeliveryLocation(data.location);
+                break;
+                
+            case 'error':
+                console.error('Erreur WebSocket:', data.message);
+                break;
+        }
+    }
+    
+    // Mettre à jour le statut de la commande
+    function updateOrderStatus(order) {
+        // Mettre à jour le badge de statut
+        const statusBadge = document.getElementById('order-status-badge');
+        statusBadge.textContent = getStatusDisplayName(order.status);
+        statusBadge.className = `status-badge status-${order.status}`;
+        
+        // Mettre à jour la timeline
+        updateTimeline(order.status);
+        
+        // Mettre à jour l'ETA si fourni
+        if (order.delivery && order.delivery.estimated_time) {
+            updateETA(order.delivery.estimated_time);
+        }
+        
+        // Notifications visuelles
+        if (order.status === 'confirmed') {
+            GourmetGuide.notifications.show('success', '{% trans "Votre commande a été confirmée!" %}');
+        } else if (order.status === 'ready') {
+            GourmetGuide.notifications.show('info', '{% trans "Votre commande est prête!" %}');
+        } else if (order.status === 'out_for_delivery') {
+            GourmetGuide.notifications.show('info', '{% trans "Votre commande est en route!" %}');
+        } else if (order.status === 'delivered') {
+            GourmetGuide.notifications.show('success', '{% trans "Commande livrée! Bon appétit!" %}');
+            
+            // Animation de confetti
+            if (typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+    }
+    
+    // Mettre à jour la position du livreur
+    function updateDeliveryLocation(location) {
+        const mapData = window.GourmetMaps['deliveryMap'];
+        if (!mapData) return;
+        
+        // Mettre à jour ou créer le marqueur du livreur
+        if (deliveryPersonMarker) {
+            deliveryPersonMarker.setPosition({
+                lat: location.lat,
+                lng: location.lng
+            });
+        } else {
+            deliveryPersonMarker = new google.maps.Marker({
+                position: { lat: location.lat, lng: location.lng },
+                map: mapData.map,
+                title: '{% trans "Livreur" %}',
+                icon: {
+                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    scaledSize: new google.maps.Size(32, 32)
+                }
+            });
+        }
+        
+        // Mettre à jour l'itinéraire
+        updateDeliveryRoute();
+    }
+    
+    // Mettre à jour l'itinéraire de livraison
+    function updateDeliveryRoute() {
+        if (!deliveryPersonMarker) return;
+        
+        const mapData = window.GourmetMaps['deliveryMap'];
+        if (!mapData) return;
+        
+        // Créer l'itinéraire du restaurant vers la destination
+        const directionsService = new google.maps.DirectionsService();
+        
+        if (!routeRenderer) {
+            routeRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: '#667eea',
+                    strokeWeight: 4
+                }
+            });
+            routeRenderer.setMap(mapData.map);
+        }
+        
+        const request = {
+            origin: deliveryPersonMarker.getPosition(),
+            destination: orderData.delivery_address,
+            travelMode: google.maps.TravelMode.DRIVING,
+            avoidTolls: true
+        };
+        
+        directionsService.route(request, (result, status) => {
+            if (status === 'OK') {
+                routeRenderer.setDirections(result);
+                
+                // Calculer l'ETA
+                const route = result.routes[0];
+                const leg = route.legs[0];
+                const eta = new Date(Date.now() + leg.duration.value * 1000);
+                updateETA(eta.toISOString());
+            }
+        });
+    }
+    
+    // Mettre à jour la timeline
+    function updateTimeline(status) {
+        const statuses = ['pending', 'confirmed', 'preparing', 'ready', 'assigned_to_delivery', 'out_for_delivery', 'delivered'];
+        const currentIndex = statuses.indexOf(status);
+        
+        statuses.forEach((s, index) => {
+            const item = document.getElementById(`timeline-${s.replace('_', '-')}`);
+            if (!item) return;
+            
+            item.classList.remove('active', 'completed');
+            
+            if (index < currentIndex) {
+                item.classList.add('completed');
+            } else if (index === currentIndex) {
+                item.classList.add('active');
+                
+                // Mettre à jour l'heure
+                const timeElement = item.querySelector('.text-muted');
+                if (timeElement) {
+                    timeElement.textContent = new Date().toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+        });
+    }
+    
+    // Mettre à jour l'ETA
+    function updateETA(isoTime) {
+        const eta = new Date(isoTime);
+        const now = new Date();
+        const diffMinutes = Math.ceil((eta - now) / 60000);
+        
+        const etaTimeElement = document.getElementById('eta-time');
+        const etaDescElement = document.getElementById('eta-description');
+        
+        if (diffMinutes > 0) {
+            etaTimeElement.textContent = `${diffMinutes} min`;
+            etaDescElement.textContent = `{% trans "Arrivée prévue vers" %} ${eta.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            })}`;
+        } else {
+            etaTimeElement.textContent = '{% trans "Imminent" %}';
+            etaDescElement.textContent = '{% trans "Le livreur arrive!" %}';
+        }
+    }
+    
+    // Mettre à jour le statut de connexion
+    function updateConnectionStatus(connected) {
+        const statusElement = document.getElementById('connectionStatus');
+        const textElement = document.getElementById('connectionText');
+        
+        if (connected) {
+            statusElement.className = 'connection-status connected';
+            textElement.textContent = '{% trans "Connecté" %}';
+        } else {
+            statusElement.className = 'connection-status disconnected';
+            textElement.textContent = '{% trans "Déconnecté" %}';
+        }
+    }
+    
+    // Obtenir le nom d'affichage du statut
+    function getStatusDisplayName(status) {
+        const statusNames = {
+            'pending': '{% trans "En attente" %}',
+            'confirmed': '{% trans "Confirmée" %}',
+            'preparing': '{% trans "En préparation" %}',
+            'ready': '{% trans "Prête" %}',
+            'assigned_to_delivery': '{% trans "Livreur assigné" %}',
+            'out_for_delivery': '{% trans "En livraison" %}',
+            'delivered': '{% trans "Livrée" %}',
+            'cancelled': '{% trans "Annulée" %}'
+        };
+        return statusNames[status] || status;
+    }
+    
+    // Signaler un problème
+    window.reportIssue = function() {
+        const modal = new bootstrap.Modal(document.getElementById('issueModal'));
+        modal.show();
+    };
+    
+    // Soumettre un signalement
+    window.submitIssue = function() {
+        const type = document.getElementById('issueType').value;
+        const description = document.getElementById('issueDescription').value;
+        
+        if (!type || !description.trim()) {
+            GourmetGuide.notifications.show('error', '{% trans "Veuillez remplir tous les champs" %}');
+            return;
+        }
+        
+        // Envoyer le signalement (API à implémenter)
+        fetch('/api/orders/report-issue/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                order_id: orderData.id,
+                issue_type: type,
+                description: description
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('issueModal')).hide();
+                GourmetGuide.notifications.show('success', '{% trans "Signalement envoyé. Nous vous contacterons bientôt." %}');
+                
+                // Reset form
+                document.getElementById('issueForm').reset();
+            } else {
+                GourmetGuide.notifications.show('error', data.error || '{% trans "Erreur lors de l'envoi" %}');
+            }
+        })
+        .catch(error => {
+            GourmetGuide.notifications.show('error', '{% trans "Erreur de connexion" %}');
+        });
+    };
+    
+    // Partager le suivi
+    window.shareTracking = function() {
+        const shareText = `{% trans "Suivez ma commande GourmetGuide en temps réel!" %}`;
+        const shareUrl = window.location.href;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'GourmetGuide - Suivi de commande',
+                text: shareText,
+                url: shareUrl
+            });
+        } else {
+            // Fallback: copier le lien
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                GourmetGuide.notifications.show('success', '{% trans "Lien copié!" %}');
+            });
+        }
+    };
+    
+    // Initialiser la carte avec les marqueurs
+    window.initMapDeliverymap = function() {
+        const mapElement = document.getElementById('deliveryMap');
+        if (!mapElement) return;
+        
+        const map = new google.maps.Map(mapElement, {
+            center: { lat: orderData.restaurant.lat, lng: orderData.restaurant.lng },
+            zoom: 14,
+            styles: [
+                {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                }
+            ]
+        });
+        
+        // Stocker la référence
+        window.GourmetMaps = window.GourmetMaps || {};
+        window.GourmetMaps['deliveryMap'] = {
+            map: map,
+            markers: [],
+            infoWindows: []
+        };
+        
+        // Marqueur du restaurant
+        const restaurantMarker = new google.maps.Marker({
+            position: { lat: orderData.restaurant.lat, lng: orderData.restaurant.lng },
+            map: map,
+            title: orderData.restaurant.name,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                scaledSize: new google.maps.Size(32, 32)
+            }
+        });
+        
+        // InfoWindow pour le restaurant
+        const restaurantInfo = new google.maps.InfoWindow({
+            content: `
+                <div style="max-width: 200px;">
+                    <h6>${orderData.restaurant.name}</h6>
+                    <p class="mb-0"><i class="fas fa-store me-1"></i>{% trans "Restaurant" %}</p>
+                </div>
+            `
+        });
+        
+        restaurantMarker.addListener('click', () => {
+            restaurantInfo.open(map, restaurantMarker);
+        });
+        
+        // Marqueur de destination si on a l'adresse
+        if (orderData.delivery_address) {
+            // Géocoder l'adresse de livraison
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ 
+                address: orderData.delivery_address + ', Togo' 
+            }, (results, status) => {
+                if (status === 'OK') {
+                    const destinationMarker = new google.maps.Marker({
+                        position: results[0].geometry.location,
+                        map: map,
+                        title: '{% trans "Destination" %}',
+                        icon: {
+                            url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                            scaledSize: new google.maps.Size(32, 32)
+                        }
+                    });
+                    
+                    // Ajuster la vue pour inclure les deux marqueurs
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(restaurantMarker.getPosition());
+                    bounds.extend(destinationMarker.getPosition());
+                    map.fitBounds(bounds);
+                }
+            });
+        }
+        
+        // Ajouter le marqueur du livreur s'il existe
+        if (orderData.delivery_person && orderData.delivery_person.lat) {
+            deliveryPersonMarker = new google.maps.Marker({
+                position: { 
+                    lat: orderData.delivery_person.lat, 
+                    lng: orderData.delivery_person.lng 
+                },
+                map: map,
+                title: orderData.delivery_person.name,
+                icon: {
+                    url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    scaledSize: new google.maps.Size(32, 32)
+                }
+            });
+            
+            updateDeliveryRoute();
+        }
+    };
+    
+    // Initialiser
+    initializeWebSocket();
+    updateTimeline(orderData.status);
+    
+    // Nettoyage lors de la fermeture
+    window.addEventListener('beforeunload', function() {
+        if (trackingSocket) {
+            trackingSocket.close();
+        }
+    });
+});
+</script>
+
+<!-- Charger Google Maps -->
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY|default:'YOUR_API_KEY' }}&callback=initMapDeliverymap&libraries=places,geometry">
+</script>
+
+<!-- Confetti pour l'animation de livraison -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+{% endblock %}

@@ -1,97 +1,100 @@
-# GourmetGuide 🍴
+# 🍴 GourmetGuide - Plateforme de Livraison de Repas
 
-Une plateforme complète de découverte culinaire et de livraison de repas au Togo, développée avec Django.
+GourmetGuide est une application web complète de livraison de repas développée avec Django, conçue spécifiquement pour le marché africain avec support des paiements mobiles locaux.
 
-## 🌟 Fonctionnalités
+## 🌟 Fonctionnalités Principales
 
-### Pour les Clients
-- 🔍 **Recherche avancée** de restaurants par localisation, cuisine, prix
-- 🛒 **Commande en ligne** avec panier intelligent
-- 📱 **Paiements mobiles** (Tmoney, Flooz) et cartes bancaires
-- 🚚 **Suivi en temps réel** des livraisons
-- ⭐ **Système d'avis** et de notation
-- 🎁 **Programme de fidélité** avec points et récompenses
-- 🔔 **Notifications temps réel** (WebSocket)
+### 👥 Multi-Utilisateurs
+- **Clients** : Commande, suivi en temps réel, portefeuille
+- **Restaurants** : Gestion menu, commandes, analytics
+- **Livreurs** : Interface mobile, géolocalisation, gains
+- **Administrateurs** : Dashboard complet, modération
 
-### Pour les Restaurants
-- 📊 **Tableau de bord** avec statistiques détaillées
-- 🍽️ **Gestion du menu** et des prix
-- 📋 **Gestion des commandes** en temps réel
-- 📈 **Analytics** et rapports de vente
-- 👥 **Gestion du personnel** et des rôles
-- 🎯 **Promotions** et offres spéciales
+### 💳 Système de Paiement Avancé
+- **Stripe** : Paiements par carte bancaire internationaux
+- **Tmoney** : Simulation du paiement mobile Togocom
+- **Flooz** : Simulation du paiement mobile Moov
+- **Portefeuille** : Système de crédit interne
+- **Espèces** : Paiement à la livraison
 
-### Pour les Livreurs
-- 🗺️ **Interface de livraison** avec géolocalisation
-- 📦 **Gestion des livraisons** assignées
-- 💰 **Suivi des revenus** et statistiques
-- 🚴 **Optimisation des trajets**
+### 🗺️ Géolocalisation
+- **Google Maps** : Cartes interactives
+- **Suivi en temps réel** : Position des livreurs
+- **Calcul de distance** : Frais de livraison automatiques
+- **Recherche géographique** : Restaurants à proximité
 
-### Pour les Administrateurs
-- 🛡️ **Gestion complète** de la plateforme
-- 📊 **Analytics globales** et KPIs
-- 👤 **Gestion des utilisateurs** et modération
-- 💳 **Gestion des paiements** et transactions
-- 🔧 **Configuration** du système
+### ⚡ Temps Réel
+- **WebSocket** : Notifications instantanées
+- **Suivi de commandes** : Mises à jour en direct
+- **Chat** : Communication restaurant-client-livreur
+- **Notifications push** : Alertes importantes
+
+### 🎨 Interface Moderne
+- **Bootstrap 5** : Design responsive et moderne
+- **Animations** : Transitions fluides
+- **PWA Ready** : Installation sur mobile
+- **Multilingue** : Français/Anglais
 
 ## 🛠️ Technologies Utilisées
 
 ### Backend
-- **Django 5.0** - Framework web principal
-- **Django REST Framework** - APIs REST
-- **PostgreSQL** - Base de données (SQLite en développement)
-- **Redis** - Cache et messages (Django Channels)
-- **Celery** - Tâches asynchrones
+- **Django 5.2.5** : Framework web principal
+- **Django REST Framework** : APIs RESTful
+- **Django Channels** : WebSocket et temps réel
+- **PostgreSQL** : Base de données (SQLite en dev)
+- **Redis** : Cache et channel layer
+- **Celery** : Tâches asynchrones
 
 ### Frontend
-- **Django Templates** - Rendu côté serveur
-- **Bootstrap 5** - Framework CSS
-- **JavaScript ES6+** - Interactivité
-- **WebSockets** - Notifications temps réel
+- **Django Templates** : Rendu côté serveur
+- **Bootstrap 5** : Framework CSS
+- **JavaScript ES6+** : Interactivité
+- **Google Maps API** : Cartes et géolocalisation
+- **WebSocket** : Temps réel côté client
 
-### Intégrations
-- **Google Maps API** - Géolocalisation
-- **Stripe** - Paiements internationaux
-- **Tmoney/Flooz** - Paiements mobiles locaux (simulation)
-- **Django Channels** - WebSockets
-- **Django Allauth** - Authentification sociale
+### Paiements
+- **Stripe** : Paiements internationaux
+- **Simulateurs** : Tmoney et Flooz
+- **Portefeuille virtuel** : Système interne
 
 ### Déploiement
-- **Docker** & **Docker Compose**
-- **Nginx** - Serveur web
-- **Gunicorn** - Serveur WSGI
-- **PostgreSQL** - Base de données production
+- **Docker** : Conteneurisation
+- **Docker Compose** : Orchestration
+- **Nginx** : Reverse proxy
+- **Gunicorn** : Serveur WSGI
 
 ## 📁 Structure du Projet
 
 ```
 gourmetguide/
-├── accounts/           # Gestion des utilisateurs multi-rôles
-├── restaurants/        # Gestion des restaurants et menus
-├── orders/            # Système de commandes et panier
+├── accounts/           # Authentification multi-rôles
+├── analytics/          # Statistiques et rapports
+├── core/              # Fonctionnalités centrales
 ├── delivery/          # Gestion des livraisons
-├── payments/          # Système de paiement
-├── reviews/           # Avis et notations
 ├── loyalty/           # Programme de fidélité
-├── notifications/     # Notifications temps réel
-├── analytics/         # Statistiques et rapports
-├── core/             # Utilitaires et pages communes
-├── templates/        # Templates Django
-├── static/           # Fichiers statiques (CSS, JS, images)
-├── media/            # Fichiers uploadés
-├── locale/           # Traductions (FR/EN)
-└── gourmetguide/     # Configuration principale
+├── notifications/     # Notifications et WebSocket
+├── orders/            # Gestion des commandes
+├── payments/          # Système de paiement
+├── restaurants/       # Gestion des restaurants
+├── reviews/           # Avis et évaluations
+├── static/            # Fichiers statiques
+├── templates/         # Templates Django
+├── media/             # Fichiers uploadés
+├── docker-compose.yml # Configuration Docker
+├── Dockerfile         # Image Docker
+├── requirements.txt   # Dépendances Python
+└── manage.py         # Utilitaire Django
 ```
 
 ## 🚀 Installation et Configuration
 
 ### Prérequis
 - Python 3.11+
-- Node.js 18+ (pour les assets frontend)
-- PostgreSQL 14+ (pour la production)
-- Redis 6+ (pour les WebSockets et cache)
+- PostgreSQL 13+
+- Redis 6+
+- Docker & Docker Compose (optionnel)
 
-### Installation
+### Installation Locale
 
 1. **Cloner le projet**
 ```bash
@@ -99,7 +102,7 @@ git clone <repository-url>
 cd gourmetguide
 ```
 
-2. **Créer un environnement virtuel**
+2. **Créer l'environnement virtuel**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
@@ -112,7 +115,7 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-4. **Configuration de l'environnement**
+4. **Configuration**
 ```bash
 cp .env.example .env
 # Éditer .env avec vos configurations
@@ -120,290 +123,351 @@ cp .env.example .env
 
 5. **Base de données**
 ```bash
-python manage.py makemigrations
 python manage.py migrate
-```
-
-6. **Créer un superutilisateur**
-```bash
+python manage.py loaddata fixtures/*.json
 python manage.py createsuperuser
 ```
 
-7. **Créer des données de test**
-```bash
-python manage.py create_test_data
-```
-
-8. **Collecter les fichiers statiques**
-```bash
-python manage.py collectstatic
-```
-
-9. **Démarrer le serveur**
+6. **Lancer le serveur**
 ```bash
 python manage.py runserver
 ```
 
-### Variables d'Environnement
+### Installation Docker
 
-Créez un fichier `.env` basé sur `.env.example` :
-
-```env
-# Django
-SECRET_KEY=your-secret-key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Base de données
-DATABASE_URL=sqlite:///db.sqlite3
-# ou pour PostgreSQL:
-# DATABASE_URL=postgres://user:password@localhost:5432/gourmetguide
-
-# Redis (pour Django Channels et cache)
-REDIS_URL=redis://localhost:6379/0
-
-# APIs externes
-GOOGLE_MAPS_API_KEY=your-google-maps-key
-STRIPE_PUBLIC_KEY=your-stripe-public-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
-
-# Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-app-password
-
-# Cloudinary (optionnel)
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-```
-
-## 🐳 Déploiement avec Docker
-
-1. **Construire et démarrer les conteneurs**
+1. **Lancer avec Docker Compose**
 ```bash
-docker-compose up --build
+docker-compose up -d
 ```
 
-2. **Exécuter les migrations**
+2. **Initialiser la base de données**
 ```bash
 docker-compose exec web python manage.py migrate
-```
-
-3. **Créer un superutilisateur**
-```bash
+docker-compose exec web python manage.py loaddata fixtures/*.json
 docker-compose exec web python manage.py createsuperuser
 ```
 
-4. **Créer des données de test**
-```bash
-docker-compose exec web python manage.py create_test_data
+## ⚙️ Configuration
+
+### Variables d'Environnement
+
+Créez un fichier `.env` à la racine :
+
+```env
+# Django
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+
+# Base de données
+DATABASE_URL=postgresql://user:password@localhost:5432/gourmetguide
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# Google Maps
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+
+# Stripe
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Email
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+
+# Sécurité
+SECURE_SSL_REDIRECT=False
+SECURE_HSTS_SECONDS=0
 ```
 
-## 📱 API REST
+### APIs Externes
 
-L'application expose une API REST complète :
+1. **Google Maps API**
+   - Activer : Maps JavaScript API, Places API, Geocoding API
+   - Configurer les restrictions de domaine
 
-### Authentification
-- `POST /api/auth/login/` - Connexion
-- `POST /api/auth/register/` - Inscription
-- `POST /api/auth/logout/` - Déconnexion
-- `GET /api/auth/profile/` - Profil utilisateur
+2. **Stripe**
+   - Créer un compte développeur
+   - Récupérer les clés de test
+   - Configurer les webhooks
 
-### Restaurants
-- `GET /api/restaurants/` - Liste des restaurants
-- `GET /api/restaurants/{id}/` - Détails d'un restaurant
-- `GET /api/restaurants/{id}/menu/` - Menu d'un restaurant
-- `POST /api/restaurants/search/` - Recherche avancée
+## 📱 Utilisation
 
-### Commandes
-- `GET /api/orders/` - Liste des commandes
-- `POST /api/orders/` - Créer une commande
-- `GET /api/orders/{id}/` - Détails d'une commande
-- `POST /api/orders/{id}/cancel/` - Annuler une commande
+### Pour les Clients
 
-### Panier
-- `GET /api/orders/cart/` - Contenu du panier
-- `POST /api/orders/cart/add/` - Ajouter un article
-- `PUT /api/orders/cart/update/` - Modifier un article
-- `DELETE /api/orders/cart/remove/` - Supprimer un article
+1. **Inscription/Connexion**
+   - Créer un compte client
+   - Compléter le profil
 
-Documentation complète disponible à `/api/` (DRF Browsable API).
+2. **Commander**
+   - Parcourir les restaurants
+   - Utiliser la carte interactive
+   - Ajouter au panier
+   - Choisir la méthode de paiement
 
-## 🌍 Internationalisation
+3. **Suivi**
+   - Suivre en temps réel
+   - Communiquer avec le restaurant/livreur
+   - Évaluer après livraison
 
-L'application supporte le français et l'anglais :
+### Pour les Restaurants
+
+1. **Configuration**
+   - Créer le profil restaurant
+   - Ajouter le menu et photos
+   - Configurer les zones de livraison
+
+2. **Gestion**
+   - Recevoir les commandes en temps réel
+   - Mettre à jour les statuts
+   - Analyser les performances
+
+### Pour les Livreurs
+
+1. **Inscription**
+   - Créer un profil livreur
+   - Ajouter véhicule et documents
+
+2. **Livraisons**
+   - Voir les commandes disponibles
+   - Accepter les livraisons
+   - Utiliser le GPS intégré
+
+## 🔧 Développement
+
+### Structure des Apps
+
+- `accounts/` : Authentification, profils utilisateurs
+- `restaurants/` : CRUD restaurants, menus, catégories
+- `orders/` : Commandes, panier, workflow
+- `delivery/` : Livreurs, assignments, tracking
+- `payments/` : Paiements, portefeuille, transactions
+- `reviews/` : Avis, évaluations, modération
+- `notifications/` : Notifications, WebSocket
+- `loyalty/` : Points fidélité, récompenses
+- `analytics/` : Statistiques, rapports
+- `core/` : Utilitaires, pages statiques
+
+### APIs REST
+
+Toutes les fonctionnalités sont disponibles via API REST :
+
+```
+/api/auth/          # Authentification
+/api/restaurants/   # Restaurants et menus
+/api/orders/        # Commandes et panier
+/api/payments/      # Paiements et portefeuille
+/api/delivery/      # Livraisons
+/api/reviews/       # Avis
+/api/notifications/ # Notifications
+```
+
+### WebSocket Endpoints
+
+```
+ws://localhost:8000/ws/notifications/           # Notifications utilisateur
+ws://localhost:8000/ws/orders/{id}/track/       # Suivi de commande
+ws://localhost:8000/ws/restaurant/              # Notifications restaurant
+ws://localhost:8000/ws/delivery/                # Interface livreur
+```
+
+### Commandes de Gestion
 
 ```bash
-# Générer les fichiers de traduction
-python manage.py makemessages -l en
-python manage.py makemessages -l fr
+# Créer des données de test
+python manage.py create_test_data
 
-# Compiler les traductions
-python manage.py compilemessages
+# Nettoyer les données expirées
+python manage.py cleanup_expired_data
+
+# Calculer les statistiques
+python manage.py calculate_stats
+
+# Envoyer les notifications
+python manage.py send_notifications
 ```
 
 ## 🧪 Tests
 
+### Lancer les Tests
+
 ```bash
-# Lancer tous les tests
+# Tests unitaires
 python manage.py test
 
-# Tests avec coverage
+# Tests avec couverture
 coverage run --source='.' manage.py test
 coverage report
 coverage html
+
+# Tests d'API
+python manage.py test --tag=api
+
+# Tests d'intégration
+python manage.py test --tag=integration
 ```
 
-## 📊 Données de Test
-
-Le projet inclut des données de test réalistes :
-
-- **5 restaurants** avec menus complets
-- **15 utilisateurs** (clients, restaurateurs, livreurs)
-- **Coordonnées GPS** réelles de Lomé, Togo
-- **Catégories** de cuisine locales et internationales
+### Données de Test
 
 ```bash
-# Créer des données de test
-python manage.py create_test_data
+# Charger les fixtures
+python manage.py loaddata fixtures/users.json
+python manage.py loaddata fixtures/restaurants.json
+python manage.py loaddata fixtures/orders.json
 
-# Supprimer et recréer les données
-python manage.py create_test_data --clear
+# Créer des données aléatoires
+python manage.py create_test_data --restaurants=20 --orders=100
 ```
 
-## 🔐 Comptes de Test
+## 🔒 Sécurité
 
-Après avoir exécuté `create_test_data` :
+### Fonctionnalités Implémentées
 
-### Clients
-- `client1@test.com` / `testpass123`
-- `client2@test.com` / `testpass123`
+- **Authentification JWT** : Tokens sécurisés
+- **Permissions granulaires** : Contrôle d'accès par rôle
+- **Validation des données** : Sanitization des entrées
+- **Protection CSRF** : Tokens anti-CSRF
+- **Chiffrement** : Données sensibles chiffrées
+- **Rate limiting** : Protection contre le spam
 
-### Restaurants
-- `baobab@restaurant.com` / `testpass123`
-- `mama@restaurant.com` / `testpass123`
-- `pizza@restaurant.com` / `testpass123`
+### Configuration Production
 
-### Livreurs
-- `livreur1@test.com` / `testpass123`
-- `livreur2@test.com` / `testpass123`
-
-### Admin
-- `admin@gourmetguide.com` / `admin123`
-
-## 🎨 Personnalisation
-
-### Thème et Couleurs
-Les couleurs principales sont définies dans `static/css/main.css` :
-
-```css
-:root {
-    --primary-color: #667eea;
-    --secondary-color: #764ba2;
-    --success-color: #28a745;
-    --warning-color: #ffc107;
-    --danger-color: #dc3545;
-}
+```python
+# settings/production.py
+DEBUG = False
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 ```
 
-### Templates
-Les templates utilisent Bootstrap 5 et sont entièrement personnalisables dans le dossier `templates/`.
+## 📊 Monitoring et Analytics
 
-## 🔧 Commandes de Gestion
+### Métriques Disponibles
 
-```bash
-# Créer une nouvelle application Django
-python manage.py startapp nom_app
+- **Commandes** : Volume, revenus, temps moyen
+- **Restaurants** : Performance, popularité
+- **Livreurs** : Efficacité, évaluations
+- **Utilisateurs** : Acquisition, rétention
 
-# Créer des migrations
-python manage.py makemigrations
+### Dashboards
 
-# Appliquer les migrations
-python manage.py migrate
+- **Admin** : Vue globale de la plateforme
+- **Restaurant** : Analytics spécifiques
+- **Livreur** : Performances et gains
 
-# Créer un superutilisateur
-python manage.py createsuperuser
+## 🌍 Déploiement
 
-# Collecter les fichiers statiques
-python manage.py collectstatic
+### Docker Production
 
-# Démarrer le serveur de développement
-python manage.py runserver
-
-# Shell Django
-python manage.py shell
-
-# Créer des données de test
-python manage.py create_test_data [--clear]
+```yaml
+# docker-compose.prod.yml
+version: '3.8'
+services:
+  web:
+    build: .
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://...
+    depends_on:
+      - db
+      - redis
+  
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
 ```
 
-## 📈 Fonctionnalités Avancées
+### Variables d'Environnement Production
 
-### Géolocalisation
-- Calcul automatique des distances
-- Zones de livraison personnalisées
-- Optimisation des trajets pour les livreurs
-
-### Paiements
-- Intégration Stripe pour les cartes bancaires
-- Simulation des paiements mobiles (Tmoney, Flooz)
-- Gestion des portefeuilles électroniques
-- Paiements en espèces à la livraison
-
-### Notifications Temps Réel
-- WebSockets avec Django Channels
-- Notifications push (Firebase)
-- Emails transactionnels
-- SMS (intégration à prévoir)
-
-### Programme de Fidélité
-- Points gagnés à chaque commande
-- Niveaux de fidélité (Bronze, Argent, Or, Platine)
-- Récompenses et réductions exclusives
-- Parrainage avec bonus
+```env
+DEBUG=False
+SECRET_KEY=production-secret-key
+DATABASE_URL=postgresql://user:pass@db:5432/gourmetguide
+REDIS_URL=redis://redis:6379/0
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+```
 
 ## 🤝 Contribution
 
+### Workflow de Développement
+
 1. Fork le projet
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/nouvelle-fonctionnalite`)
-3. Committez vos changements (`git commit -am 'Ajout d'une nouvelle fonctionnalité'`)
-4. Poussez vers la branche (`git push origin feature/nouvelle-fonctionnalite`)
-5. Créez une Pull Request
+2. Créer une branche feature (`git checkout -b feature/nouvelle-fonctionnalite`)
+3. Commiter les changements (`git commit -am 'Ajout nouvelle fonctionnalité'`)
+4. Pousser la branche (`git push origin feature/nouvelle-fonctionnalite`)
+5. Créer une Pull Request
 
-## 📝 Licence
+### Standards de Code
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+- **PEP 8** : Style Python
+- **Black** : Formatage automatique
+- **Flake8** : Linting
+- **Coverage** : Tests > 80%
 
 ## 📞 Support
 
+### Documentation
+
+- **API** : `/api/docs/` (Swagger)
+- **Admin** : `/admin/doc/`
+- **Guide utilisateur** : `/help/`
+
+### Contact
+
 - **Email** : support@gourmetguide.com
-- **Documentation** : [docs.gourmetguide.com](https://docs.gourmetguide.com)
-- **Issues** : [GitHub Issues](https://github.com/votre-org/gourmetguide/issues)
+- **Issues** : GitHub Issues
+- **Discord** : [Serveur communauté]
 
-## 🗺️ Roadmap
+## 📄 Licence
 
-### Phase 1 (Actuelle) ✅
-- [x] Architecture de base Django
-- [x] Authentification multi-rôles
-- [x] Gestion des restaurants et menus
-- [x] Système de commandes
-- [x] Interface utilisateur responsive
-- [x] API REST complète
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
-### Phase 2 (En cours) 🚧
-- [ ] Intégration Google Maps
-- [ ] Paiements Stripe
-- [ ] Notifications temps réel
-- [ ] Programme de fidélité avancé
+## 🙏 Remerciements
 
-### Phase 3 (À venir) 📋
-- [ ] Application mobile (React Native)
-- [ ] Intelligence artificielle (recommandations)
-- [ ] Expansion géographique
-- [ ] Intégrations tiers avancées
+- **Django Community** : Framework exceptionnel
+- **Bootstrap** : Interface utilisateur
+- **Stripe** : Solution de paiement
+- **Google Maps** : Services de géolocalisation
 
 ---
 
-**Développé avec ❤️ pour la communauté togolaise**
+## 🚀 Démarrage Rapide
+
+```bash
+# Installation rapide avec Docker
+git clone <repository>
+cd gourmetguide
+cp .env.example .env
+docker-compose up -d
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py loaddata fixtures/*.json
+
+# Accéder à l'application
+# http://localhost:8000
+```
+
+## 📈 Roadmap
+
+- [ ] Application mobile native (React Native)
+- [ ] IA pour recommandations personnalisées
+- [ ] Intégration avec plus de services de paiement
+- [ ] Support multi-pays
+- [ ] API publique pour partenaires
+- [ ] Programme d'affiliation
+
+---
+
+**Développé avec ❤️ pour la communauté africaine**

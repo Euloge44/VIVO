@@ -38,3 +38,11 @@ INFO 2025-08-10 22:25:29,692 autoreload 8995 140510056706304 Watching for file c
 INFO 2025-08-10 22:38:36,000 autoreload 11333 140147676541184 Watching for file changes with StatReloader
 INFO 2025-08-10 22:43:28,645 basehttp 11333 140147611440832 "GET / HTTP/1.1" 200 15895
 INFO 2025-08-10 22:43:43,977 autoreload 12048 140099302887680 Watching for file changes with StatReloader
+INFO 2025-08-10 23:05:11,017 autoreload 11333 140147676541184 /workspace/restaurants/views.py changed, reloading.
+INFO 2025-08-10 23:05:11,513 autoreload 14945 139836103409920 Watching for file changes with StatReloader
+INFO 2025-08-10 23:05:15,755 autoreload 14945 139836103409920 /workspace/restaurants/urls.py changed, reloading.
+INFO 2025-08-10 23:05:16,064 autoreload 14971 140464455762176 Watching for file changes with StatReloader
+INFO 2025-08-10 23:07:52,979 autoreload 14971 140464455762176 /workspace/payments/views.py changed, reloading.
+INFO 2025-08-10 23:07:53,332 autoreload 15426 140001552941312 Watching for file changes with StatReloader
+INFO 2025-08-11 00:02:32,010 autoreload 19004 140461851799808 Watching for file changes with StatReloader
+INFO 2025-08-11 00:04:12,648 autoreload 19593 140053923930368 Watching for file changes with StatReloader

@@ -18,9 +18,19 @@ urlpatterns = [
     path('wallet/', views.WalletView.as_view(), name='wallet'),
     path('wallet/topup/', views.WalletTopUpView.as_view(), name='wallet_topup'),
     
-    # API endpoints
-    path('api/process/', views.api_process_payment, name='api_process'),
-    path('api/methods/', views.api_payment_methods, name='api_methods'),
-    path('api/wallet/', views.api_wallet, name='api_wallet'),
-    path('api/mobile-pay/', views.api_mobile_payment, name='api_mobile_payment'),
+    # Paiements mobiles
+    path('mobile/status/', views.MobilePaymentStatusView.as_view(), name='mobile_payment_status'),
+    
+    # API
+    path('api/create-intent/', views.api_create_payment_intent, name='api_create_intent'),
+    path('api/mobile-payment/', views.api_initiate_mobile_payment, name='api_mobile_payment'),
+    path('api/mobile-status/<str:transaction_id>/', views.api_check_mobile_payment, name='api_mobile_status'),
+    path('api/wallet-payment/', views.api_wallet_payment, name='api_wallet_payment'),
+    path('api/wallet-balance/', views.api_wallet_balance, name='api_wallet_balance'),
+    path('api/wallet-topup/', views.api_wallet_topup, name='api_wallet_topup'),
+    path('api/payment-methods/', views.api_payment_methods, name='api_payment_methods'),
+    path('api/payment-history/', views.api_payment_history, name='api_payment_history'),
+    
+    # Simulation (dev uniquement)
+    path('simulate/<str:transaction_id>/', views.simulate_mobile_payment, name='simulate_mobile'),
 ]

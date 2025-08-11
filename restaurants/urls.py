@@ -10,6 +10,7 @@ app_name = 'restaurants'
 urlpatterns = [
     # Vues publiques
     path('', views.RestaurantListView.as_view(), name='list'),
+    path('map/', views.RestaurantMapView.as_view(), name='map'),
     path('<int:pk>/', views.RestaurantDetailView.as_view(), name='detail'),
     path('<int:pk>/menu/', views.RestaurantMenuView.as_view(), name='menu'),
     

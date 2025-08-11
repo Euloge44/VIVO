@@ -1,0 +1,511 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Paiement réussi" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .success-container {
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    
+    .success-header {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border-radius: 15px;
+        color: white;
+        padding: 3rem 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .success-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    .success-icon {
+        font-size: 4rem;
+        color: white;
+        margin-bottom: 1rem;
+        animation: bounce 1s ease-in-out;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-20px); }
+        60% { transform: translateY(-10px); }
+    }
+    
+    .payment-details {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .payment-method-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .badge-stripe {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .badge-tmoney {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+        color: white;
+    }
+    
+    .badge-flooz {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .badge-wallet {
+        background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        color: white;
+    }
+    
+    .badge-cash {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        color: white;
+    }
+    
+    .next-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .action-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-5px);
+        color: inherit;
+        text-decoration: none;
+    }
+    
+    .action-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="success-container">
+    <!-- En-tête de succès -->
+    <div class="success-header">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h1 class="mb-0">{% trans "Paiement réussi!" %}</h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Votre transaction a été traitée avec succès" %}</p>
+    </div>
+
+    <!-- Détails du paiement -->
+    <div class="payment-details">
+        <h4 class="mb-4">
+            <i class="fas fa-receipt me-2 text-primary"></i>{% trans "Détails de la transaction" %}
+        </h4>
+        
+        {% if payment_reference or reference %}
+        <div class="detail-row">
+            <span>{% trans "Référence" %}:</span>
+            <code class="text-primary">{{ payment_reference|default:reference }}</code>
+        </div>
+        {% endif %}
+        
+        {% if payment_intent or transaction_id %}
+        <div class="detail-row">
+            <span>{% trans "ID Transaction" %}:</span>
+            <code class="text-muted">{{ payment_intent|default:transaction_id }}</code>
+        </div>
+        {% endif %}
+        
+        <div class="detail-row">
+            <span>{% trans "Montant payé" %}:</span>
+            <span class="h6 text-success">{{ amount|default:total_amount|floatformat:0 }} FCFA</span>
+        </div>
+        
+        <div class="detail-row">
+            <span>{% trans "Méthode de paiement" %}:</span>
+            <span class="payment-method-badge badge-{{ method|default:'stripe' }}">
+                {% if method == 'stripe' %}
+                    <i class="fas fa-credit-card me-1"></i>{% trans "Carte bancaire" %}
+                {% elif method == 'tmoney' %}
+                    <i class="fas fa-mobile-alt me-1"></i>Tmoney
+                {% elif method == 'flooz' %}
+                    <i class="fas fa-mobile-alt me-1"></i>Flooz
+                {% elif method == 'wallet' %}
+                    <i class="fas fa-wallet me-1"></i>{% trans "Portefeuille" %}
+                {% elif method == 'cash' %}
+                    <i class="fas fa-money-bill-wave me-1"></i>{% trans "Espèces" %}
+                {% else %}
+                    <i class="fas fa-credit-card me-1"></i>{% trans "Carte bancaire" %}
+                {% endif %}
+            </span>
+        </div>
+        
+        <div class="detail-row">
+            <span>{% trans "Date et heure" %}:</span>
+            <span>{% now "d/m/Y H:i" %}</span>
+        </div>
+        
+        {% if order %}
+        <div class="detail-row">
+            <span>{% trans "Commande" %}:</span>
+            <a href="{% url 'orders:detail' order.id %}" class="text-primary text-decoration-none">
+                #{{ order.order_number }}
+            </a>
+        </div>
+        
+        <div class="detail-row">
+            <span>{% trans "Restaurant" %}:</span>
+            <a href="{% url 'restaurants:detail' order.restaurant.id %}" class="text-primary text-decoration-none">
+                {{ order.restaurant.name }}
+            </a>
+        </div>
+        
+        <div class="detail-row">
+            <span>{% trans "Statut" %}:</span>
+            <span class="badge bg-success">{% trans "Payé" %}</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Message spécifique selon la méthode -->
+    {% if method == 'cash' %}
+    <div class="alert alert-warning">
+        <i class="fas fa-money-bill-wave me-2"></i>
+        <strong>{% trans "Paiement à la livraison" %}</strong><br>
+        {% trans "Préparez le montant exact pour le livreur" %}: <strong>{{ amount|floatformat:0 }} FCFA</strong>
+    </div>
+    {% elif method == 'tmoney' or method == 'flooz' %}
+    <div class="alert alert-info">
+        <i class="fas fa-mobile-alt me-2"></i>
+        <strong>{% trans "Paiement mobile confirmé" %}</strong><br>
+        {% trans "Vous recevrez un SMS de confirmation de" %} 
+        {% if method == 'tmoney' %}Togocom{% else %}Moov{% endif %}
+    </div>
+    {% elif method == 'wallet' %}
+    <div class="alert alert-success">
+        <i class="fas fa-wallet me-2"></i>
+        <strong>{% trans "Paiement par portefeuille" %}</strong><br>
+        {% trans "Le montant a été déduit de votre portefeuille GourmetGuide" %}
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <i class="fas fa-credit-card me-2"></i>
+        <strong>{% trans "Paiement par carte" %}</strong><br>
+        {% trans "Votre carte a été débitée avec succès" %}
+    </div>
+    {% endif %}
+    
+    <!-- Actions suivantes -->
+    <div class="next-actions">
+        {% if order %}
+        <a href="{% url 'orders:track' order.id %}" class="action-card card">
+            <div class="card-body p-4">
+                <div class="action-icon text-primary">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <h5 class="card-title">{% trans "Suivre ma commande" %}</h5>
+                <p class="card-text text-muted">{% trans "Voir le statut de livraison en temps réel" %}</p>
+            </div>
+        </a>
+        
+        <a href="{% url 'orders:detail' order.id %}" class="action-card card">
+            <div class="card-body p-4">
+                <div class="action-icon text-info">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <h5 class="card-title">{% trans "Détails de la commande" %}</h5>
+                <p class="card-text text-muted">{% trans "Voir le récapitulatif complet" %}</p>
+            </div>
+        </a>
+        {% else %}
+        <a href="{% url 'payments:wallet' %}" class="action-card card">
+            <div class="card-body p-4">
+                <div class="action-icon text-success">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h5 class="card-title">{% trans "Mon portefeuille" %}</h5>
+                <p class="card-text text-muted">{% trans "Voir votre nouveau solde" %}</p>
+            </div>
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'restaurants:list' %}" class="action-card card">
+            <div class="card-body p-4">
+                <div class="action-icon text-warning">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <h5 class="card-title">{% trans "Nouvelle commande" %}</h5>
+                <p class="card-text text-muted">{% trans "Découvrir d'autres restaurants" %}</p>
+            </div>
+        </a>
+        
+        <a href="{% url 'accounts:dashboard' %}" class="action-card card">
+            <div class="card-body p-4">
+                <div class="action-icon text-secondary">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h5 class="card-title">{% trans "Tableau de bord" %}</h5>
+                <p class="card-text text-muted">{% trans "Retour à votre espace personnel" %}</p>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Informations supplémentaires -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-info-circle me-2 text-info"></i>{% trans "Informations importantes" %}
+            </h6>
+            
+            <div class="row text-start">
+                <div class="col-md-6">
+                    <h6>{% trans "Reçu électronique" %}</h6>
+                    <p class="small text-muted">
+                        {% trans "Un reçu détaillé a été envoyé à votre adresse email" %}: 
+                        <strong>{{ user.email }}</strong>
+                    </p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6>{% trans "Support client" %}</h6>
+                    <p class="small text-muted">
+                        {% trans "En cas de problème, contactez-nous avec la référence" %}: 
+                        <code>{{ payment_reference|default:reference|default:transaction_id }}</code>
+                    </p>
+                </div>
+            </div>
+            
+            {% if order %}
+            <div class="row text-start mt-3">
+                <div class="col-md-6">
+                    <h6>{% trans "Temps de livraison estimé" %}</h6>
+                    <p class="small text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        {% if order.restaurant.estimated_delivery_time %}
+                            {{ order.restaurant.estimated_delivery_time }} minutes
+                        {% else %}
+                            30-45 minutes
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6>{% trans "Adresse de livraison" %}</h6>
+                    <p class="small text-muted">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {{ order.delivery_address|default:user.address|default:"Adresse à confirmer" }}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Partage et feedback -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-heart me-2 text-danger"></i>{% trans "Partagez votre expérience" %}
+            </h6>
+            
+            <p class="text-muted mb-3">{% trans "Aidez-nous à améliorer GourmetGuide" %}</p>
+            
+            <div class="d-flex justify-content-center gap-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="shareExperience('facebook')">
+                    <i class="fab fa-facebook me-1"></i>Facebook
+                </button>
+                
+                <button class="btn btn-outline-info btn-sm" onclick="shareExperience('twitter')">
+                    <i class="fab fa-twitter me-1"></i>Twitter
+                </button>
+                
+                <button class="btn btn-outline-success btn-sm" onclick="shareExperience('whatsapp')">
+                    <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                </button>
+                
+                {% if order %}
+                <a href="{% url 'reviews:create' %}?order={{ order.id }}" class="btn btn-outline-warning btn-sm">
+                    <i class="fas fa-star me-1"></i>{% trans "Évaluer" %}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recommandations -->
+    {% if recommended_restaurants %}
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-thumbs-up me-2 text-success"></i>{% trans "Vous pourriez aussi aimer" %}
+            </h6>
+            
+            <div class="row">
+                {% for restaurant in recommended_restaurants|slice:":3" %}
+                <div class="col-md-4">
+                    <div class="card border-0">
+                        <div class="card-body text-center p-3">
+                            <h6 class="card-title">{{ restaurant.name }}</h6>
+                            <p class="card-text small text-muted">{{ restaurant.description|truncatechars:50 }}</p>
+                            <div class="text-warning mb-2">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= restaurant.average_rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <a href="{% url 'restaurants:detail' restaurant.id %}" class="btn btn-outline-primary btn-sm">
+                                {% trans "Voir le menu" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation de confettis au chargement
+    setTimeout(() => {
+        if (typeof confetti !== 'undefined') {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+            
+            // Deuxième vague après 500ms
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+            }, 500);
+        }
+    }, 500);
+    
+    // Partager l'expérience
+    window.shareExperience = function(platform) {
+        const message = "{% trans 'Je viens de commander sur GourmetGuide! 🍴' %}";
+        const url = window.location.origin;
+        
+        let shareUrl = '';
+        
+        switch (platform) {
+            case 'facebook':
+                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(message)}`;
+                break;
+                
+            case 'twitter':
+                shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
+                break;
+                
+            case 'whatsapp':
+                shareUrl = `https://wa.me/?text=${encodeURIComponent(message + ' ' + url)}`;
+                break;
+        }
+        
+        if (shareUrl) {
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+        }
+    };
+    
+    // Auto-redirection après 30 secondes (optionnelle)
+    {% if order %}
+    setTimeout(() => {
+        if (confirm('{% trans "Voulez-vous être redirigé vers le suivi de votre commande ?" %}')) {
+            window.location.href = '{% url "orders:track" order.id %}';
+        }
+    }, 30000);
+    {% endif %}
+    
+    // Envoyer une notification de succès
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('GourmetGuide', {
+            body: '{% trans "Votre paiement a été confirmé avec succès!" %}',
+            icon: '{% static "images/logo.png" %}',
+            tag: 'payment-success'
+        });
+    }
+});
+</script>
+
+<!-- Confetti pour l'animation -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+{% endblock %}

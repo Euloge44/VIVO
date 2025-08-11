@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Restaurant, MenuItem, Category
+from django.conf import settings
 
 
 class RestaurantListView(ListView):
@@ -89,6 +90,40 @@ class RestaurantStatsView(LoginRequiredMixin, DetailView):
     
     def get_object(self):
         return get_object_or_404(Restaurant, owner=self.request.user)
+
+
+class RestaurantMapView(ListView):
+    """Vue carte des restaurants avec géolocalisation."""
+    model = Restaurant
+    template_name = 'restaurants/map.html'
+    context_object_name = 'restaurants'
+    paginate_by = None  # Pas de pagination pour la carte
+    
+    def get_queryset(self):
+        queryset = Restaurant.objects.filter(status='active').select_related('owner').prefetch_related('categories')
+        
+        # Filtrer par géolocalisation si fournie
+        user_lat = self.request.GET.get('lat')
+        user_lng = self.request.GET.get('lng')
+        radius = self.request.GET.get('radius', 10)
+        
+        if user_lat and user_lng:
+            try:
+                from core.utils.geolocation import get_restaurants_within_radius
+                nearby_restaurants = get_restaurants_within_radius(
+                    float(user_lat), float(user_lng), float(radius)
+                )
+                restaurant_ids = [r['restaurant'].id for r in nearby_restaurants]
+                queryset = queryset.filter(id__in=restaurant_ids)
+            except (ValueError, ImportError):
+                pass
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['GOOGLE_MAPS_API_KEY'] = getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
+        return context
 
 
 # API Views

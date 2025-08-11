@@ -1,0 +1,503 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Statut du paiement mobile" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-container {
+        max-width: 600px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    
+    .status-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .status-card {
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .status-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    .status-pending .status-icon {
+        color: #ffc107;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-completed .status-icon {
+        color: #28a745;
+    }
+    
+    .status-failed .status-icon {
+        color: #dc3545;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .progress-ring {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+    }
+    
+    .progress-ring circle {
+        fill: none;
+        stroke: #e9ecef;
+        stroke-width: 8;
+        r: 52;
+        cx: 60;
+        cy: 60;
+    }
+    
+    .progress-ring .progress {
+        stroke: var(--primary-color);
+        stroke-dasharray: 326.73;
+        stroke-dashoffset: 326.73;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+    
+    .instructions-card {
+        background: #e3f2fd;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .ussd-code {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        display: inline-block;
+        margin: 0.5rem 0;
+    }
+    
+    .provider-logo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .provider-logo.tmoney {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+    }
+    
+    .provider-logo.flooz {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+    
+    .countdown {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #dc3545;
+    }
+    
+    .simulation-controls {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="status-container">
+    <!-- En-tête -->
+    <div class="status-header">
+        <h1 class="mb-0">{% trans "Paiement mobile" %}</h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Suivez le statut de votre transaction" %}</p>
+    </div>
+
+    <!-- Carte de statut principal -->
+    <div class="status-card card">
+        <div class="card-body p-4">
+            <!-- Logo du fournisseur -->
+            {% if provider %}
+            <div class="provider-logo {{ provider }}">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+            {% endif %}
+            
+            <!-- Statut actuel -->
+            <div id="status-display" class="status-pending">
+                <div class="status-icon">
+                    <i class="fas fa-clock" id="status-icon"></i>
+                </div>
+                <h3 id="status-title">{% trans "En attente de confirmation" %}</h3>
+                <p class="text-muted" id="status-message">{% trans "Suivez les instructions sur votre téléphone" %}</p>
+            </div>
+            
+            <!-- Anneau de progression -->
+            <div class="progress-ring">
+                <svg>
+                    <circle></circle>
+                    <circle class="progress" id="progress-circle"></circle>
+                </svg>
+                <div class="position-absolute top-50 start-50 translate-middle">
+                    <div class="countdown" id="countdown-timer">5:00</div>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            {% if transaction_id %}
+            <div class="instructions-card">
+                <h5>{% trans "Instructions" %}</h5>
+                <p class="mb-2">
+                    {% if provider == 'tmoney' %}
+                        {% trans "Composez le code USSD sur votre téléphone Togocom" %}:
+                        <div class="ussd-code">*332#</div>
+                    {% elif provider == 'flooz' %}
+                        {% trans "Composez le code USSD sur votre téléphone Moov" %}:
+                        <div class="ussd-code">*155#</div>
+                    {% endif %}
+                </p>
+                <p class="small text-muted">
+                    {% trans "Suivez les instructions qui apparaîtront sur votre écran pour confirmer le paiement" %}
+                </p>
+            </div>
+            {% endif %}
+            
+            <!-- Détails de la transaction -->
+            {% if transaction_id %}
+            <div class="transaction-details mt-4">
+                <div class="row text-start">
+                    <div class="col-6">
+                        <strong>{% trans "ID Transaction" %}:</strong><br>
+                        <code class="text-primary">{{ transaction_id }}</code>
+                    </div>
+                    <div class="col-6">
+                        <strong>{% trans "Montant" %}:</strong><br>
+                        <span class="h6">{{ amount|default:total_amount|floatformat:0 }} FCFA</span>
+                    </div>
+                </div>
+                
+                {% if provider %}
+                <div class="row text-start mt-3">
+                    <div class="col-6">
+                        <strong>{% trans "Fournisseur" %}:</strong><br>
+                        {% if provider == 'tmoney' %}Tmoney (Togocom)
+                        {% elif provider == 'flooz' %}Flooz (Moov)
+                        {% else %}{{ provider|title }}{% endif %}
+                    </div>
+                    <div class="col-6">
+                        <strong>{% trans "Expire dans" %}:</strong><br>
+                        <span class="countdown" id="expiry-countdown">5:00</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Actions -->
+    <div class="mt-4">
+        <button class="btn btn-outline-secondary me-2" onclick="refreshStatus()">
+            <i class="fas fa-sync me-1"></i>{% trans "Actualiser" %}
+        </button>
+        
+        <button class="btn btn-outline-danger" onclick="cancelPayment()">
+            <i class="fas fa-times me-1"></i>{% trans "Annuler" %}
+        </button>
+    </div>
+    
+    <!-- Aide -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-question-circle me-2 text-info"></i>{% trans "Besoin d'aide ?" %}
+            </h6>
+            
+            <div class="accordion" id="helpAccordion">
+                <div class="accordion-item">
+                    <h6 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#help1">
+                            {% trans "Comment confirmer mon paiement ?" %}
+                        </button>
+                    </h6>
+                    <div id="help1" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                        <div class="accordion-body small">
+                            {% if provider == 'tmoney' %}
+                                <ol>
+                                    <li>{% trans "Composez *332# sur votre téléphone Togocom" %}</li>
+                                    <li>{% trans "Sélectionnez 'Paiement marchand'" %}</li>
+                                    <li>{% trans "Entrez le code de transaction affiché" %}</li>
+                                    <li>{% trans "Confirmez avec votre PIN" %}</li>
+                                </ol>
+                            {% elif provider == 'flooz' %}
+                                <ol>
+                                    <li>{% trans "Composez *155# sur votre téléphone Moov" %}</li>
+                                    <li>{% trans "Sélectionnez 'Paiement'" %}</li>
+                                    <li>{% trans "Entrez le code de transaction" %}</li>
+                                    <li>{% trans "Confirmez avec votre code secret" %}</li>
+                                </ol>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h6 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#help2">
+                            {% trans "Que faire si le paiement échoue ?" %}
+                        </button>
+                    </h6>
+                    <div id="help2" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                        <div class="accordion-body small">
+                            <ul>
+                                <li>{% trans "Vérifiez votre solde" %}</li>
+                                <li>{% trans "Assurez-vous d'avoir saisi le bon PIN/code" %}</li>
+                                <li>{% trans "Réessayez avec une autre méthode de paiement" %}</li>
+                                <li>{% trans "Contactez notre support si le problème persiste" %}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if debug %}
+    <!-- Contrôles de simulation (développement uniquement) -->
+    <div class="simulation-controls">
+        <h6><i class="fas fa-code me-2"></i>{% trans "Simulation (Dev)" %}</h6>
+        <p class="small mb-3">{% trans "Utilisez ces boutons pour simuler le résultat du paiement" %}</p>
+        
+        <button class="btn btn-success btn-sm me-2" onclick="simulatePayment(true)">
+            <i class="fas fa-check me-1"></i>{% trans "Simuler succès" %}
+        </button>
+        
+        <button class="btn btn-danger btn-sm" onclick="simulatePayment(false)">
+            <i class="fas fa-times me-1"></i>{% trans "Simuler échec" %}
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionId = '{{ transaction_id }}';
+    const provider = '{{ provider }}';
+    let statusCheckInterval = null;
+    let countdownInterval = null;
+    let expiryTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    
+    // Démarrer le suivi du statut
+    if (transactionId) {
+        startStatusPolling();
+        startCountdown();
+    }
+    
+    // Polling du statut
+    function startStatusPolling() {
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes
+        
+        statusCheckInterval = setInterval(() => {
+            attempts++;
+            
+            fetch(`/api/payments/mobile-status/${transactionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStatus(data.status, data.message);
+                    updateProgress(attempts, maxAttempts);
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(statusCheckInterval);
+                        clearInterval(countdownInterval);
+                        
+                        setTimeout(() => {
+                            window.location.href = '{% url "payments:success" %}?transaction=' + transactionId;
+                        }, 3000);
+                        
+                    } else if (data.status === 'failed') {
+                        clearInterval(statusCheckInterval);
+                        clearInterval(countdownInterval);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur de vérification du statut:', error);
+            });
+            
+            if (attempts >= maxAttempts) {
+                clearInterval(statusCheckInterval);
+                clearInterval(countdownInterval);
+                updateStatus('failed', '{% trans "Le paiement a expiré" %}');
+            }
+        }, 5000); // Vérifier toutes les 5 secondes
+    }
+    
+    // Compte à rebours
+    function startCountdown() {
+        countdownInterval = setInterval(() => {
+            const now = new Date();
+            const timeLeft = expiryTime - now;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                document.getElementById('countdown-timer').textContent = '0:00';
+                document.getElementById('expiry-countdown').textContent = '0:00';
+                return;
+            }
+            
+            const minutes = Math.floor(timeLeft / 60000);
+            const seconds = Math.floor((timeLeft % 60000) / 1000);
+            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('countdown-timer').textContent = display;
+            document.getElementById('expiry-countdown').textContent = display;
+        }, 1000);
+    }
+    
+    // Mettre à jour le statut
+    function updateStatus(status, message) {
+        const statusDisplay = document.getElementById('status-display');
+        const statusIcon = document.getElementById('status-icon');
+        const statusTitle = document.getElementById('status-title');
+        const statusMessage = document.getElementById('status-message');
+        
+        // Nettoyer les classes précédentes
+        statusDisplay.className = '';
+        
+        switch (status) {
+            case 'pending':
+                statusDisplay.classList.add('status-pending');
+                statusIcon.className = 'fas fa-clock';
+                statusTitle.textContent = '{% trans "En attente de confirmation" %}';
+                break;
+                
+            case 'completed':
+                statusDisplay.classList.add('status-completed');
+                statusIcon.className = 'fas fa-check-circle';
+                statusTitle.textContent = '{% trans "Paiement confirmé!" %}';
+                
+                // Animation de succès
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                break;
+                
+            case 'failed':
+                statusDisplay.classList.add('status-failed');
+                statusIcon.className = 'fas fa-times-circle';
+                statusTitle.textContent = '{% trans "Paiement échoué" %}';
+                break;
+        }
+        
+        statusMessage.textContent = message;
+    }
+    
+    // Mettre à jour la progression
+    function updateProgress(current, max) {
+        const progressCircle = document.getElementById('progress-circle');
+        const circumference = 326.73;
+        const progress = (current / max) * 100;
+        const offset = circumference - (progress / 100) * circumference;
+        
+        progressCircle.style.strokeDashoffset = offset;
+    }
+    
+    // Actualiser le statut manuellement
+    window.refreshStatus = function() {
+        if (!transactionId) return;
+        
+        fetch(`/api/payments/mobile-status/${transactionId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatus(data.status, data.message);
+                GourmetGuide.notifications.show('info', '{% trans "Statut actualisé" %}');
+            }
+        })
+        .catch(error => {
+            GourmetGuide.notifications.show('error', '{% trans "Erreur lors de l'actualisation" %}');
+        });
+    };
+    
+    // Annuler le paiement
+    window.cancelPayment = function() {
+        if (confirm('{% trans "Êtes-vous sûr de vouloir annuler ce paiement ?" %}')) {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            window.location.href = '{% url "payments:cancel" %}';
+        }
+    };
+    
+    {% if debug %}
+    // Simulation (développement uniquement)
+    window.simulatePayment = function(success) {
+        if (!transactionId) return;
+        
+        fetch(`/payments/simulate/${transactionId}/?success=${success}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatus(data.status, data.message);
+                
+                if (data.status === 'completed') {
+                    setTimeout(() => {
+                        window.location.href = '{% url "payments:success" %}?transaction=' + transactionId;
+                    }, 2000);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur de simulation:', error);
+        });
+    };
+    {% endif %}
+    
+    // Nettoyage lors de la fermeture de la page
+    window.addEventListener('beforeunload', function() {
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+        }
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+    });
+});
+</script>
+
+<!-- Confetti pour l'animation de succès -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+{% endblock %}

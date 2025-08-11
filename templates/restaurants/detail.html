@@ -1,0 +1,521 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ restaurant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .restaurant-header {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9)),
+                    url('{{ restaurant.cover_image|default:"/static/images/restaurant-bg.jpg" }}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+    }
+    
+    .restaurant-info-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .menu-item-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .menu-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .menu-item-image {
+        height: 120px;
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 2rem;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .rating-stars {
+        color: #ffc107;
+    }
+    
+    .status-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+    
+    .opening-hours {
+        font-size: 0.9rem;
+    }
+    
+    .add-to-cart-btn {
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    .quantity-controls {
+        border: 1px solid #dee2e6;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    
+    .quantity-controls button {
+        border: none;
+        background: white;
+        width: 35px;
+        height: 35px;
+    }
+    
+    .quantity-controls input {
+        border: none;
+        text-align: center;
+        width: 50px;
+        height: 35px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- En-tête du restaurant -->
+<div class="restaurant-header position-relative p-5">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center mb-3">
+                {% if restaurant.logo %}
+                <img src="{{ restaurant.logo }}" alt="{{ restaurant.name }}" 
+                     class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                {% endif %}
+                <div>
+                    <h1 class="mb-0">{{ restaurant.name }}</h1>
+                    <p class="mb-0 opacity-75">{{ restaurant.description }}</p>
+                </div>
+            </div>
+            
+            <!-- Évaluation et statut -->
+            <div class="d-flex align-items-center mb-3">
+                <div class="rating-stars me-3">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= restaurant.average_rating %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            <i class="far fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                    <span class="ms-2 fw-bold">{{ restaurant.average_rating }}</span>
+                    <span class="opacity-75 ms-1">({{ restaurant.total_reviews }} {% trans "avis" %})</span>
+                </div>
+                
+                {% if restaurant.is_verified %}
+                <span class="badge bg-success me-2">
+                    <i class="fas fa-check-circle me-1"></i>{% trans "Vérifié" %}
+                </span>
+                {% endif %}
+                
+                {% if restaurant.is_featured %}
+                <span class="badge bg-warning">
+                    <i class="fas fa-star me-1"></i>{% trans "Vedette" %}
+                </span>
+                {% endif %}
+            </div>
+            
+            <!-- Informations de livraison -->
+            <div class="row g-3">
+                <div class="col-auto">
+                    <i class="fas fa-clock me-2"></i>30-45 min
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-truck me-2"></i>{{ restaurant.delivery_fee }} FCFA
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-shopping-cart me-2"></i>Min. {{ restaurant.min_order_amount }} FCFA
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-map-marker-alt me-2"></i>{{ restaurant.address }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 text-end">
+            {% if restaurant.status == 'active' %}
+            <span class="badge bg-success status-badge fs-6">
+                <i class="fas fa-circle me-1"></i>{% trans "Ouvert" %}
+            </span>
+            {% else %}
+            <span class="badge bg-danger status-badge fs-6">
+                <i class="fas fa-circle me-1"></i>{% trans "Fermé" %}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Menu principal -->
+    <div class="col-lg-8">
+        <div class="restaurant-info-card card mb-4">
+            <div class="card-body">
+                <h3 class="card-title mb-3">
+                    <i class="fas fa-utensils me-2 text-primary"></i>{% trans "Menu" %}
+                </h3>
+                
+                <!-- Catégories du menu -->
+                <div class="mb-4">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary active" data-category="all">
+                            {% trans "Tout" %}
+                        </button>
+                        <button class="btn btn-outline-primary" data-category="appetizer">
+                            {% trans "Entrées" %}
+                        </button>
+                        <button class="btn btn-outline-primary" data-category="main">
+                            {% trans "Plats principaux" %}
+                        </button>
+                        <button class="btn btn-outline-primary" data-category="dessert">
+                            {% trans "Desserts" %}
+                        </button>
+                        <button class="btn btn-outline-primary" data-category="drink">
+                            {% trans "Boissons" %}
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Articles du menu -->
+                <div class="row g-3" id="menuItems">
+                    {% for item in restaurant.menu_items.all %}
+                    <div class="col-md-6 menu-item" data-category="{{ item.category }}">
+                        <div class="card menu-item-card">
+                            <div class="menu-item-image">
+                                {% if item.image %}
+                                    <img src="{{ item.image }}" alt="{{ item.name }}" 
+                                         class="w-100 h-100" style="object-fit: cover;">
+                                {% else %}
+                                    <i class="fas fa-utensils"></i>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="card-body p-3">
+                                <h6 class="card-title mb-2">{{ item.name }}</h6>
+                                <p class="card-text text-muted small mb-2">{{ item.description|truncatechars:60 }}</p>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-primary fs-5">{{ item.price }} FCFA</span>
+                                    
+                                    {% if item.is_available %}
+                                    <div class="quantity-controls d-flex align-items-center">
+                                        <button class="btn btn-sm" onclick="changeQuantity('{{ item.id }}', -1)">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="form-control form-control-sm" 
+                                               id="qty-{{ item.id }}" value="0" min="0" max="10">
+                                        <button class="btn btn-sm" onclick="changeQuantity('{{ item.id }}', 1)">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{% trans "Indisponible" %}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if item.is_available %}
+                                <button class="btn btn-primary btn-sm add-to-cart-btn w-100 mt-2" 
+                                        onclick="addToCart('{{ item.id }}', '{{ item.name }}', {{ item.price }})">
+                                    <i class="fas fa-shopping-cart me-1"></i>{% trans "Ajouter au panier" %}
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="text-center py-4">
+                            <i class="fas fa-utensils fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">{% trans "Aucun plat disponible pour le moment" %}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar avec informations -->
+    <div class="col-lg-4">
+        <!-- Informations du restaurant -->
+        <div class="restaurant-info-card card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle me-2 text-primary"></i>{% trans "Informations" %}
+                </h5>
+                
+                <div class="mb-3">
+                    <strong>{% trans "Adresse" %}:</strong><br>
+                    <i class="fas fa-map-marker-alt me-1 text-muted"></i>{{ restaurant.address }}<br>
+                    {{ restaurant.city }}, {{ restaurant.country }}
+                </div>
+                
+                <div class="mb-3">
+                    <strong>{% trans "Téléphone" %}:</strong><br>
+                    <i class="fas fa-phone me-1 text-muted"></i>{{ restaurant.phone }}
+                </div>
+                
+                {% if restaurant.email %}
+                <div class="mb-3">
+                    <strong>{% trans "Email" %}:</strong><br>
+                    <i class="fas fa-envelope me-1 text-muted"></i>{{ restaurant.email }}
+                </div>
+                {% endif %}
+                
+                {% if restaurant.website %}
+                <div class="mb-3">
+                    <strong>{% trans "Site web" %}:</strong><br>
+                    <a href="{{ restaurant.website }}" target="_blank" class="text-decoration-none">
+                        <i class="fas fa-globe me-1 text-muted"></i>{{ restaurant.website }}
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Horaires d'ouverture -->
+                <div class="opening-hours">
+                    <strong>{% trans "Horaires d'ouverture" %}:</strong>
+                    <div class="mt-2">
+                        {% for day, hours in restaurant.opening_hours.items %}
+                        <div class="d-flex justify-content-between">
+                            <span>{% trans day|capfirst %}</span>
+                            <span>{{ hours.open }} - {{ hours.close }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Catégories -->
+        {% if restaurant.categories.all %}
+        <div class="restaurant-info-card card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-tags me-2 text-primary"></i>{% trans "Catégories" %}
+                </h5>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for category in restaurant.categories.all %}
+                    <span class="badge bg-light text-dark">
+                        {% if category.icon %}<i class="{{ category.icon }} me-1"></i>{% endif %}
+                        {{ category.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Panier (si des items sont ajoutés) -->
+        <div class="restaurant-info-card card" id="cartSummary" style="display: none;">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-shopping-cart me-2 text-primary"></i>{% trans "Votre commande" %}
+                </h5>
+                
+                <div id="cartItems"></div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Sous-total" %}:</span>
+                    <span id="cartSubtotal">0 FCFA</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Livraison" %}:</span>
+                    <span>{{ restaurant.delivery_fee }} FCFA</span>
+                </div>
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>{% trans "Total" %}:</span>
+                    <span id="cartTotal">{{ restaurant.delivery_fee }} FCFA</span>
+                </div>
+                
+                <button class="btn btn-primary w-100 mt-3" id="proceedToCheckout">
+                    <i class="fas fa-credit-card me-1"></i>{% trans "Commander" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Avis clients -->
+<div class="restaurant-info-card card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">
+            <i class="fas fa-comments me-2 text-primary"></i>{% trans "Avis clients" %}
+        </h5>
+        
+        {% if user.is_authenticated %}
+        <div class="mb-4">
+            <a href="#" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>{% trans "Laisser un avis" %}
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Placeholder pour les avis -->
+        <div class="text-center py-4">
+            <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+            <p class="text-muted">{% trans "Les avis clients seront affichés ici" %}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let cart = {};
+    
+    // Filtrage des catégories de menu
+    const categoryButtons = document.querySelectorAll('[data-category]');
+    const menuItems = document.querySelectorAll('.menu-item');
+    
+    categoryButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const category = this.dataset.category;
+            
+            // Mettre à jour les boutons actifs
+            categoryButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filtrer les items
+            menuItems.forEach(item => {
+                if (category === 'all' || item.dataset.category === category) {
+                    item.style.display = 'block';
+                    item.style.animation = 'fadeInUp 0.3s ease';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Fonctions du panier
+    window.changeQuantity = function(itemId, change) {
+        const qtyInput = document.getElementById(`qty-${itemId}`);
+        let currentQty = parseInt(qtyInput.value) || 0;
+        let newQty = Math.max(0, currentQty + change);
+        qtyInput.value = newQty;
+        
+        if (newQty > 0 && !cart[itemId]) {
+            // Ajouter l'item au panier si ce n'est pas déjà fait
+            const itemCard = qtyInput.closest('.menu-item-card');
+            const itemName = itemCard.querySelector('.card-title').textContent;
+            const itemPrice = parseFloat(itemCard.querySelector('.fw-bold').textContent.replace(' FCFA', ''));
+            
+            cart[itemId] = {
+                name: itemName,
+                price: itemPrice,
+                quantity: newQty
+            };
+        } else if (cart[itemId]) {
+            cart[itemId].quantity = newQty;
+            if (newQty === 0) {
+                delete cart[itemId];
+            }
+        }
+        
+        updateCartDisplay();
+    };
+    
+    window.addToCart = function(itemId, itemName, itemPrice) {
+        const qtyInput = document.getElementById(`qty-${itemId}`);
+        const quantity = parseInt(qtyInput.value) || 1;
+        
+        if (quantity > 0) {
+            cart[itemId] = {
+                name: itemName,
+                price: itemPrice,
+                quantity: quantity
+            };
+            
+            updateCartDisplay();
+            GourmetGuide.notifications.show('success', `${itemName} ajouté au panier`);
+        }
+    };
+    
+    function updateCartDisplay() {
+        const cartSummary = document.getElementById('cartSummary');
+        const cartItems = document.getElementById('cartItems');
+        const cartSubtotal = document.getElementById('cartSubtotal');
+        const cartTotal = document.getElementById('cartTotal');
+        
+        const itemCount = Object.keys(cart).length;
+        
+        if (itemCount === 0) {
+            cartSummary.style.display = 'none';
+            return;
+        }
+        
+        cartSummary.style.display = 'block';
+        
+        // Afficher les items
+        let itemsHtml = '';
+        let subtotal = 0;
+        
+        Object.entries(cart).forEach(([itemId, item]) => {
+            const itemTotal = item.price * item.quantity;
+            subtotal += itemTotal;
+            
+            itemsHtml += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <small class="text-muted">${item.price} FCFA × ${item.quantity}</small>
+                    </div>
+                    <div class="text-end">
+                        <div>${itemTotal} FCFA</div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${itemId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        cartItems.innerHTML = itemsHtml;
+        cartSubtotal.textContent = `${subtotal} FCFA`;
+        
+        const deliveryFee = {{ restaurant.delivery_fee }};
+        const total = subtotal + deliveryFee;
+        cartTotal.textContent = `${total} FCFA`;
+    }
+    
+    window.removeFromCart = function(itemId) {
+        delete cart[itemId];
+        const qtyInput = document.getElementById(`qty-${itemId}`);
+        if (qtyInput) {
+            qtyInput.value = 0;
+        }
+        updateCartDisplay();
+    };
+    
+    // Gestion de la commande
+    document.getElementById('proceedToCheckout').addEventListener('click', function() {
+        if (Object.keys(cart).length === 0) {
+            GourmetGuide.notifications.show('warning', '{% trans "Votre panier est vide" %}');
+            return;
+        }
+        
+        // Rediriger vers la page de commande
+        const cartData = encodeURIComponent(JSON.stringify(cart));
+        window.location.href = `{% url 'orders:create' %}?restaurant={{ restaurant.id }}&cart=${cartData}`;
+    });
+});
+</script>
+{% endblock %}

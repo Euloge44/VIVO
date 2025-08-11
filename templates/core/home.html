@@ -1,0 +1,273 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Accueil" %}{% endblock %}
+
+{% block main_class %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 100px 0 80px;
+        margin-top: 56px;
+    }
+    .search-box {
+        background: white;
+        border-radius: 50px;
+        padding: 0.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .feature-card {
+        border: none;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    .stats-section {
+        background: #f8f9fa;
+        padding: 4rem 0;
+    }
+    .stat-item {
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">
+                    {% trans "Découvrez les saveurs du Togo" %}
+                </h1>
+                <p class="lead mb-4">
+                    {% trans "Commandez vos plats préférés dans les meilleurs restaurants de Lomé et faites-vous livrer rapidement." %}
+                </p>
+                
+                <!-- Barre de recherche -->
+                <div class="search-box">
+                    <form method="get" action="{% url 'core:search' %}" class="d-flex align-items-center">
+                        <div class="flex-grow-1 px-3">
+                            <input type="text" name="q" class="form-control border-0" 
+                                   placeholder="{% trans 'Rechercher un restaurant ou un plat...' %}"
+                                   style="box-shadow: none;">
+                        </div>
+                        <div class="px-2">
+                            <input type="text" name="location" class="form-control border-0" 
+                                   placeholder="{% trans 'Votre adresse' %}"
+                                   style="box-shadow: none; width: 150px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-circle me-2" style="width: 50px; height: 50px;">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <img src="{% static 'images/hero-food.png' %}" alt="Food delivery" class="img-fluid" style="max-height: 400px;">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">{% trans "Pourquoi choisir GourmetGuide ?" %}</h2>
+            <p class="text-muted">{% trans "Une expérience culinaire unique adaptée au Togo" %}</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon text-success">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5>{% trans "Livraison rapide" %}</h5>
+                    <p class="text-muted">
+                        {% trans "Livraison en moins de 30 minutes dans toute la ville de Lomé" %}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon text-warning">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h5>{% trans "Paiement mobile" %}</h5>
+                    <p class="text-muted">
+                        {% trans "Payez facilement avec Tmoney, Flooz ou carte bancaire" %}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="feature-icon text-info">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h5>{% trans "Programme de fidélité" %}</h5>
+                    <p class="text-muted">
+                        {% trans "Gagnez des points à chaque commande et obtenez des récompenses" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Restaurants Section -->
+{% if featured_restaurants %}
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold">{% trans "Restaurants populaires" %}</h3>
+            <a href="{% url 'restaurants:list' %}" class="btn btn-outline-primary">
+                {% trans "Voir tous" %} <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        
+        <div class="row g-4">
+            {% for restaurant in featured_restaurants %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <img src="{{ restaurant.cover_image|default:'/static/images/default-restaurant.jpg' }}" 
+                         class="card-img-top" style="height: 200px; object-fit: cover;">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ restaurant.name }}</h5>
+                        <p class="card-text text-muted small">{{ restaurant.description|truncatewords:15 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="rating">
+                                <span class="text-warning">
+                                    {% for i in "12345"|make_list %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                </span>
+                                <small class="text-muted">(4.5)</small>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>30-45 min
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{% url 'restaurants:detail' restaurant.pk %}" class="btn btn-primary w-100">
+                            {% trans "Commander" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ site_stats.restaurants_count|default:"50+" }}</div>
+                    <p class="text-muted">{% trans "Restaurants partenaires" %}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ site_stats.orders_count|default:"1000+" }}</div>
+                    <p class="text-muted">{% trans "Commandes livrées" %}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ site_stats.users_count|default:"500+" }}</div>
+                    <p class="text-muted">{% trans "Clients satisfaits" %}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <p class="text-muted">{% trans "Service disponible" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3 class="fw-bold">{% trans "Vous êtes restaurateur ?" %}</h3>
+                <p class="text-muted mb-0">
+                    {% trans "Rejoignez GourmetGuide et développez votre activité en ligne" %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'accounts:register' %}?type=restaurant" class="btn btn-warning btn-lg">
+                    {% trans "Devenir partenaire" %} <i class="fas fa-arrow-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animation des statistiques
+    document.addEventListener('DOMContentLoaded', function() {
+        const statNumbers = document.querySelectorAll('.stat-number');
+        
+        const animateValue = (element, start, end, duration) => {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = value + (element.textContent.includes('+') ? '+' : '');
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        };
+        
+        // Observer pour déclencher l'animation quand visible
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = entry.target;
+                    const finalValue = parseInt(target.textContent) || 100;
+                    animateValue(target, 0, finalValue, 2000);
+                    observer.unobserve(target);
+                }
+            });
+        });
+        
+        statNumbers.forEach(stat => observer.observe(stat));
+    });
+</script>
+{% endblock %}

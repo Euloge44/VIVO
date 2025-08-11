@@ -1,0 +1,749 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Paiement" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .payment-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .payment-method-card {
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .payment-method-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+    }
+    
+    .payment-method-card.selected {
+        border-color: var(--primary-color);
+        background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .payment-method-card .method-icon {
+        font-size: 2rem;
+        color: var(--primary-color);
+    }
+    
+    .payment-method-card .method-radio {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+    
+    .order-summary {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 100px;
+    }
+    
+    .stripe-element {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background: white;
+        margin-bottom: 1rem;
+    }
+    
+    .mobile-payment-info {
+        background: #e3f2fd;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .payment-fees {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: none;
+        z-index: 9999;
+    }
+    
+    .loading-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+    <!-- En-tête -->
+    <div class="payment-header p-4 text-center">
+        <h1 class="mb-0"><i class="fas fa-credit-card me-2"></i>{% trans "Paiement sécurisé" %}</h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Choisissez votre méthode de paiement préférée" %}</p>
+    </div>
+
+    <div class="row">
+        <!-- Méthodes de paiement -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4">
+                        <i class="fas fa-wallet me-2 text-primary"></i>{% trans "Méthodes de paiement" %}
+                    </h5>
+                    
+                    <form id="paymentForm">
+                        {% csrf_token %}
+                        
+                        <!-- Méthodes de paiement disponibles -->
+                        {% for method in payment_methods %}
+                        <div class="payment-method-card" data-method="{{ method.id }}" onclick="selectPaymentMethod('{{ method.id }}')">
+                            <input type="radio" name="payment_method" value="{{ method.id }}" 
+                                   class="method-radio" {% if forloop.first %}checked{% endif %}>
+                            
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <i class="{{ method.icon }} method-icon"></i>
+                                </div>
+                                <div class="col">
+                                    <h6 class="mb-1">{{ method.name }}</h6>
+                                    <p class="text-muted mb-0 small">{{ method.description }}</p>
+                                    <small class="text-success">{% trans "Frais" %}: {{ method.fees }}</small>
+                                    
+                                    {% if method.id == 'wallet' and not method.sufficient %}
+                                    <div class="text-danger small mt-1">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        {% trans "Solde insuffisant" %} ({{ method.balance }} FCFA)
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if method.id == 'wallet' %}
+                                <div class="col-auto">
+                                    <span class="badge bg-info">{{ method.balance }} FCFA</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Champs spécifiques par méthode -->
+                        
+                        <!-- Stripe -->
+                        <div id="stripe-fields" class="payment-method-fields" style="display: none;">
+                            <div class="mt-3">
+                                <h6>{% trans "Informations de carte" %}</h6>
+                                <div id="stripe-card-element" class="stripe-element">
+                                    <!-- Stripe Elements sera injecté ici -->
+                                </div>
+                                <div id="stripe-card-errors" class="text-danger small"></div>
+                                
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="saveCard">
+                                    <label class="form-check-label" for="saveCard">
+                                        {% trans "Enregistrer cette carte pour les prochains paiements" %}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Paiements mobiles -->
+                        <div id="mobile-fields" class="payment-method-fields" style="display: none;">
+                            <div class="mt-3">
+                                <h6>{% trans "Numéro de téléphone" %}</h6>
+                                <input type="tel" class="form-control" id="mobilePhone" 
+                                       placeholder="+228 XX XX XX XX" 
+                                       value="{{ user.phone|default:'' }}">
+                                
+                                <div class="mobile-payment-info mt-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-mobile-alt me-2 text-primary"></i>
+                                        <strong id="mobile-provider-name">Tmoney</strong>
+                                    </div>
+                                    <p class="mb-2 small">
+                                        {% trans "Après confirmation, vous recevrez un SMS avec les instructions." %}
+                                    </p>
+                                    <p class="mb-0 small">
+                                        <strong>{% trans "Code USSD" %}:</strong> 
+                                        <span id="ussd-code">*332#</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Portefeuille -->
+                        <div id="wallet-fields" class="payment-method-fields" style="display: none;">
+                            <div class="mt-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    {% trans "Le montant sera déduit immédiatement de votre portefeuille." %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Espèces -->
+                        <div id="cash-fields" class="payment-method-fields" style="display: none;">
+                            <div class="mt-3">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                    {% trans "Vous paierez en espèces lors de la livraison." %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Affichage des frais -->
+                        <div id="payment-fees" class="payment-fees" style="display: none;">
+                            <div class="d-flex justify-content-between">
+                                <span>{% trans "Frais de transaction" %}:</span>
+                                <span id="fees-amount">0 FCFA</span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Résumé de commande -->
+        <div class="col-lg-4">
+            <div class="order-summary">
+                <h5 class="mb-3">
+                    <i class="fas fa-receipt me-2 text-primary"></i>{% trans "Résumé" %}
+                </h5>
+                
+                {% if order %}
+                <!-- Détails de la commande -->
+                <div class="mb-3">
+                    <h6>{% trans "Commande" %} #{{ order.order_number }}</h6>
+                    <p class="text-muted small mb-2">{{ order.restaurant.name }}</p>
+                    
+                    {% for item in order.items.all %}
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+                        <span>{{ item.total_price }} FCFA</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Sous-total" %}:</span>
+                    <span>{{ order.subtotal }} FCFA</span>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Livraison" %}:</span>
+                    <span>{{ order.delivery_fee }} FCFA</span>
+                </div>
+                
+                {% if order.discount_amount %}
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>{% trans "Réduction" %}:</span>
+                    <span>-{{ order.discount_amount }} FCFA</span>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <!-- Rechargement de portefeuille ou autre -->
+                <div class="mb-3">
+                    <h6>{% trans "Rechargement de portefeuille" %}</h6>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Montant" %}:</span>
+                    <span id="base-amount">{{ amount|default:0 }} FCFA</span>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between mb-2" id="transaction-fees" style="display: none;">
+                    <span>{% trans "Frais de transaction" %}:</span>
+                    <span id="fees-display">0 FCFA</span>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between h5 mb-3">
+                    <strong>{% trans "Total" %}:</strong>
+                    <strong id="total-amount">{{ amount|default:order.total_amount|default:0 }} FCFA</strong>
+                </div>
+                
+                <!-- Bouton de paiement -->
+                <button type="button" class="btn btn-primary btn-lg w-100 mb-3" 
+                        id="paymentButton" onclick="processPayment()">
+                    <i class="fas fa-lock me-2"></i>{% trans "Payer maintenant" %}
+                </button>
+                
+                <!-- Sécurité -->
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        {% trans "Paiement 100% sécurisé" %}
+                    </small>
+                </div>
+                
+                <!-- Méthodes acceptées -->
+                <div class="text-center mt-3">
+                    <small class="text-muted d-block mb-2">{% trans "Nous acceptons" %}:</small>
+                    <div class="payment-badges">
+                        <img src="{% static 'images/visa.png' %}" alt="Visa" class="me-1" style="height: 24px;" onerror="this.style.display='none'">
+                        <img src="{% static 'images/mastercard.png' %}" alt="Mastercard" class="me-1" style="height: 24px;" onerror="this.style.display='none'">
+                        <span class="badge bg-warning text-dark me-1">Tmoney</span>
+                        <span class="badge bg-success me-1">Flooz</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay de chargement -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <h5 id="loading-message">{% trans "Traitement en cours..." %}</h5>
+        <p class="text-muted" id="loading-description">{% trans "Veuillez patienter" %}</p>
+    </div>
+</div>
+
+<!-- Modal de statut de paiement mobile -->
+<div class="modal fade" id="mobilePaymentModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-mobile-alt me-2"></i>{% trans "Paiement mobile en cours" %}
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner mb-3"></div>
+                <h6 id="mobile-status-title">{% trans "En attente de confirmation" %}</h6>
+                <p id="mobile-status-message">{% trans "Suivez les instructions sur votre téléphone" %}</p>
+                
+                <div class="alert alert-info" id="mobile-instructions">
+                    <strong>{% trans "Instructions" %}:</strong><br>
+                    <span id="mobile-instruction-text"></span>
+                </div>
+                
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                
+                <p class="small text-muted">
+                    {% trans "Cette fenêtre se fermera automatiquement une fois le paiement confirmé" %}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="cancelMobilePayment()">
+                    {% trans "Annuler" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Stripe JS -->
+{% if STRIPE_PUBLISHABLE_KEY %}
+<script src="https://js.stripe.com/v3/"></script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedMethod = 'stripe';
+    let stripe = null;
+    let cardElement = null;
+    let currentMobileTransaction = null;
+    let mobilePaymentInterval = null;
+    
+    // Configuration des frais par méthode
+    const paymentFees = {
+        'stripe': { rate: 0.029, fixed: 0.30 },
+        'tmoney': { rate: 0.02, fixed: 0 },
+        'flooz': { rate: 0.015, fixed: 0 },
+        'wallet': { rate: 0, fixed: 0 },
+        'cash': { rate: 0, fixed: 0 }
+    };
+    
+    // Initialiser Stripe
+    {% if STRIPE_PUBLISHABLE_KEY %}
+    stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+    const elements = stripe.elements();
+    
+    cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                    color: '#aab7c4',
+                },
+            },
+        },
+    });
+    
+    cardElement.mount('#stripe-card-element');
+    cardElement.on('change', function(event) {
+        const displayError = document.getElementById('stripe-card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+    {% endif %}
+    
+    // Sélectionner la première méthode par défaut
+    selectPaymentMethod(selectedMethod);
+    
+    // Sélectionner une méthode de paiement
+    window.selectPaymentMethod = function(method) {
+        selectedMethod = method;
+        
+        // Mettre à jour l'interface
+        document.querySelectorAll('.payment-method-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        document.querySelector(`[data-method="${method}"]`).classList.add('selected');
+        document.querySelector(`input[value="${method}"]`).checked = true;
+        
+        // Afficher/masquer les champs spécifiques
+        document.querySelectorAll('.payment-method-fields').forEach(field => {
+            field.style.display = 'none';
+        });
+        
+        const methodFields = document.getElementById(`${method}-fields`);
+        if (methodFields) {
+            methodFields.style.display = 'block';
+        }
+        
+        // Mettre à jour les informations mobiles
+        if (method === 'tmoney' || method === 'flooz') {
+            updateMobilePaymentInfo(method);
+        }
+        
+        // Calculer et afficher les frais
+        updatePaymentFees();
+    };
+    
+    // Mettre à jour les informations de paiement mobile
+    function updateMobilePaymentInfo(provider) {
+        const providerNames = {
+            'tmoney': 'Tmoney (Togocom)',
+            'flooz': 'Flooz (Moov)'
+        };
+        
+        const ussdCodes = {
+            'tmoney': '*332#',
+            'flooz': '*155#'
+        };
+        
+        document.getElementById('mobile-provider-name').textContent = providerNames[provider];
+        document.getElementById('ussd-code').textContent = ussdCodes[provider];
+    }
+    
+    // Calculer et afficher les frais
+    function updatePaymentFees() {
+        const amount = parseFloat('{{ amount|default:order.total_amount|default:0 }}');
+        const fees = paymentFees[selectedMethod];
+        
+        if (fees && (fees.rate > 0 || fees.fixed > 0)) {
+            const feeAmount = (amount * fees.rate) + fees.fixed;
+            const totalAmount = amount + feeAmount;
+            
+            document.getElementById('fees-display').textContent = `${feeAmount.toFixed(0)} FCFA`;
+            document.getElementById('total-amount').textContent = `${totalAmount.toFixed(0)} FCFA`;
+            document.getElementById('transaction-fees').style.display = 'flex';
+        } else {
+            document.getElementById('transaction-fees').style.display = 'none';
+            document.getElementById('total-amount').textContent = `${amount.toFixed(0)} FCFA`;
+        }
+    }
+    
+    // Traiter le paiement
+    window.processPayment = function() {
+        const method = selectedMethod;
+        
+        if (method === 'stripe') {
+            processStripePayment();
+        } else if (method === 'tmoney' || method === 'flooz') {
+            processMobilePayment(method);
+        } else if (method === 'wallet') {
+            processWalletPayment();
+        } else if (method === 'cash') {
+            processCashPayment();
+        }
+    };
+    
+    // Traitement Stripe
+    function processStripePayment() {
+        if (!stripe || !cardElement) {
+            GourmetGuide.notifications.show('error', '{% trans "Stripe non configuré" %}');
+            return;
+        }
+        
+        showLoading('{% trans "Traitement du paiement..." %}', '{% trans "Validation de votre carte" %}');
+        
+        // Créer le PaymentIntent
+        fetch('/api/payments/create-intent/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                amount: parseFloat('{{ amount|default:order.total_amount|default:0 }}'),
+                order_id: '{{ order.id|default:"" }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                return stripe.confirmCardPayment(data.client_secret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: '{{ user.get_full_name }}',
+                            email: '{{ user.email }}'
+                        }
+                    }
+                });
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .then(result => {
+            hideLoading();
+            
+            if (result.error) {
+                GourmetGuide.notifications.show('error', result.error.message);
+            } else {
+                // Succès
+                window.location.href = '{% url "payments:success" %}?payment_intent=' + result.paymentIntent.id;
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            GourmetGuide.notifications.show('error', error.message);
+        });
+    }
+    
+    // Traitement paiement mobile
+    function processMobilePayment(provider) {
+        const phone = document.getElementById('mobilePhone').value;
+        
+        if (!phone) {
+            GourmetGuide.notifications.show('error', '{% trans "Numéro de téléphone requis" %}');
+            return;
+        }
+        
+        showLoading('{% trans "Initiation du paiement..." %}', '{% trans "Connexion au service mobile" %}');
+        
+        fetch('/api/payments/mobile-payment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                provider: provider,
+                phone: phone,
+                amount: parseFloat('{{ amount|default:order.total_amount|default:0 }}'),
+                order_id: '{{ order.id|default:"" }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.success) {
+                currentMobileTransaction = data.transaction_id;
+                showMobilePaymentModal(data);
+                startMobilePaymentPolling(data.transaction_id);
+            } else {
+                GourmetGuide.notifications.show('error', data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            GourmetGuide.notifications.show('error', error.message);
+        });
+    }
+    
+    // Traitement portefeuille
+    function processWalletPayment() {
+        showLoading('{% trans "Traitement du paiement..." %}', '{% trans "Déduction du portefeuille" %}');
+        
+        fetch('/api/payments/wallet-payment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                amount: parseFloat('{{ amount|default:order.total_amount|default:0 }}'),
+                order_id: '{{ order.id|default:"" }}',
+                description: 'Paiement commande GourmetGuide'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.success) {
+                window.location.href = '{% url "payments:success" %}?reference=' + data.payment_reference;
+            } else {
+                GourmetGuide.notifications.show('error', data.error);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            GourmetGuide.notifications.show('error', error.message);
+        });
+    }
+    
+    // Traitement espèces
+    function processCashPayment() {
+        showLoading('{% trans "Confirmation de la commande..." %}', '{% trans "Préparation pour paiement à la livraison" %}');
+        
+        // Simuler un délai pour l'UX
+        setTimeout(() => {
+            hideLoading();
+            window.location.href = '{% url "payments:success" %}?method=cash';
+        }, 2000);
+    }
+    
+    // Afficher la modal de paiement mobile
+    function showMobilePaymentModal(paymentData) {
+        document.getElementById('mobile-instruction-text').innerHTML = 
+            `Composez <strong>${paymentData.ussd_code}</strong> sur votre téléphone ${paymentData.phone}`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('mobilePaymentModal'));
+        modal.show();
+    }
+    
+    // Polling pour le statut du paiement mobile
+    function startMobilePaymentPolling(transactionId) {
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes max
+        
+        mobilePaymentInterval = setInterval(() => {
+            attempts++;
+            
+            fetch(`/api/payments/mobile-status/${transactionId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateMobilePaymentProgress(attempts, maxAttempts);
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(mobilePaymentInterval);
+                        document.getElementById('mobile-status-title').textContent = '{% trans "Paiement confirmé!" %}';
+                        document.getElementById('mobile-status-message').textContent = data.message;
+                        
+                        setTimeout(() => {
+                            window.location.href = '{% url "payments:success" %}?transaction=' + transactionId;
+                        }, 2000);
+                        
+                    } else if (data.status === 'failed') {
+                        clearInterval(mobilePaymentInterval);
+                        document.getElementById('mobile-status-title').textContent = '{% trans "Paiement échoué" %}';
+                        document.getElementById('mobile-status-message').textContent = data.error_message || data.message;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur polling:', error);
+            });
+            
+            if (attempts >= maxAttempts) {
+                clearInterval(mobilePaymentInterval);
+                document.getElementById('mobile-status-title').textContent = '{% trans "Timeout" %}';
+                document.getElementById('mobile-status-message').textContent = '{% trans "Le paiement a expiré" %}';
+            }
+        }, 5000); // Vérifier toutes les 5 secondes
+    }
+    
+    // Mettre à jour la progression du paiement mobile
+    function updateMobilePaymentProgress(attempts, maxAttempts) {
+        const progress = (attempts / maxAttempts) * 100;
+        document.querySelector('.progress-bar').style.width = `${progress}%`;
+    }
+    
+    // Annuler le paiement mobile
+    window.cancelMobilePayment = function() {
+        if (mobilePaymentInterval) {
+            clearInterval(mobilePaymentInterval);
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('mobilePaymentModal')).hide();
+        
+        // Optionnel: appeler l'API pour annuler la transaction
+        if (currentMobileTransaction) {
+            // Logique d'annulation à implémenter
+        }
+    };
+    
+    // Afficher l'overlay de chargement
+    function showLoading(title, description) {
+        document.getElementById('loading-message').textContent = title;
+        document.getElementById('loading-description').textContent = description;
+        document.getElementById('loadingOverlay').style.display = 'block';
+    }
+    
+    // Masquer l'overlay de chargement
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+    
+    // Mettre à jour les frais initialement
+    updatePaymentFees();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Choisir votre type de compte" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .choice-container {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+    .choice-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    .choice-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .choice-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    .choice-btn {
+        border-radius: 25px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="choice-container">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold text-primary">
+            <i class="fas fa-utensils me-3"></i>GourmetGuide
+        </h1>
+        <p class="lead text-muted">{% trans "Choisissez votre type de compte pour commencer" %}</p>
+    </div>
+    
+    <div class="row g-4">
+        <!-- Client -->
+        <div class="col-md-4">
+            <div class="card choice-card text-center p-4">
+                <div class="card-body">
+                    <div class="choice-icon text-success">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h4 class="card-title">{% trans "Client" %}</h4>
+                    <p class="card-text text-muted">
+                        {% trans "Découvrez et commandez dans vos restaurants préférés" %}
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-success me-2"></i>{% trans "Commandes en ligne" %}</li>
+                        <li><i class="fas fa-check text-success me-2"></i>{% trans "Suivi en temps réel" %}</li>
+                        <li><i class="fas fa-check text-success me-2"></i>{% trans "Programme de fidélité" %}</li>
+                        <li><i class="fas fa-check text-success me-2"></i>{% trans "Avis et recommandations" %}</li>
+                    </ul>
+                    <a href="{% url 'accounts:register' %}?type=client" class="btn btn-success choice-btn">
+                        {% trans "Créer un compte client" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Restaurant -->
+        <div class="col-md-4">
+            <div class="card choice-card text-center p-4">
+                <div class="card-body">
+                    <div class="choice-icon text-warning">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h4 class="card-title">{% trans "Restaurant" %}</h4>
+                    <p class="card-text text-muted">
+                        {% trans "Gérez votre restaurant et recevez des commandes" %}
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-warning me-2"></i>{% trans "Gestion du menu" %}</li>
+                        <li><i class="fas fa-check text-warning me-2"></i>{% trans "Suivi des commandes" %}</li>
+                        <li><i class="fas fa-check text-warning me-2"></i>{% trans "Analytics détaillés" %}</li>
+                        <li><i class="fas fa-check text-warning me-2"></i>{% trans "Gestion des promotions" %}</li>
+                    </ul>
+                    <a href="{% url 'accounts:register' %}?type=restaurant" class="btn btn-warning choice-btn">
+                        {% trans "Créer un compte restaurant" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Livreur -->
+        <div class="col-md-4">
+            <div class="card choice-card text-center p-4">
+                <div class="card-body">
+                    <div class="choice-icon text-info">
+                        <i class="fas fa-motorcycle"></i>
+                    </div>
+                    <h4 class="card-title">{% trans "Livreur" %}</h4>
+                    <p class="card-text text-muted">
+                        {% trans "Rejoignez notre équipe de livraison" %}
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-info me-2"></i>{% trans "Horaires flexibles" %}</li>
+                        <li><i class="fas fa-check text-info me-2"></i>{% trans "Suivi GPS" %}</li>
+                        <li><i class="fas fa-check text-info me-2"></i>{% trans "Paiements rapides" %}</li>
+                        <li><i class="fas fa-check text-info me-2"></i>{% trans "Support 24/7" %}</li>
+                    </ul>
+                    <a href="{% url 'accounts:register' %}?type=delivery" class="btn btn-info choice-btn">
+                        {% trans "Créer un compte livreur" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-5">
+        <p class="text-muted">
+            {% trans "Vous avez déjà un compte ?" %}
+            <a href="{% url 'accounts:login' %}" class="text-decoration-none">
+                {% trans "Connectez-vous" %}
+            </a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animation des cartes
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.choice-card');
+        cards.forEach((card, index) => {
+            card.style.transform = 'translateY(30px)';
+            card.style.opacity = '0';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.4s ease';
+                card.style.transform = 'translateY(0)';
+                card.style.opacity = '1';
+            }, 100 * (index + 1));
+        });
+    });
+</script>
+{% endblock %}

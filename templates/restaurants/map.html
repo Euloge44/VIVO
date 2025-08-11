@@ -1,0 +1,552 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Carte des restaurants" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .map-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .map-sidebar {
+        height: 600px;
+        overflow-y: auto;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .restaurant-list-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .restaurant-list-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .restaurant-list-item.active {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .restaurant-list-item.active .text-muted {
+        color: rgba(255,255,255,0.8) !important;
+    }
+    
+    .distance-badge {
+        border-radius: 15px;
+        font-size: 0.8rem;
+    }
+    
+    .rating-stars {
+        color: #ffc107;
+    }
+    
+    .filter-controls {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .search-location {
+        position: relative;
+    }
+    
+    .search-location .form-control {
+        border-radius: 25px;
+        padding-left: 3rem;
+    }
+    
+    .search-location .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    
+    #map {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="map-header p-4 text-center">
+        <h1 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>{% trans "Carte des restaurants" %}</h1>
+        <p class="mb-0 mt-2 opacity-75">{% trans "Découvrez les restaurants près de vous" %}</p>
+    </div>
+
+    <div class="row">
+        <!-- Sidebar avec liste des restaurants -->
+        <div class="col-lg-4">
+            <!-- Contrôles de filtrage -->
+            <div class="filter-controls">
+                <div class="search-location mb-3">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control" id="locationSearch" 
+                           placeholder="{% trans 'Rechercher une adresse...' %}">
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-6">
+                        <select class="form-select form-select-sm" id="radiusFilter">
+                            <option value="5">{% trans "5 km" %}</option>
+                            <option value="10" selected>{% trans "10 km" %}</option>
+                            <option value="15">{% trans "15 km" %}</option>
+                            <option value="25">{% trans "25 km" %}</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="getCurrentLocationAndSearch()">
+                            <i class="fas fa-crosshairs me-1"></i>{% trans "Ma position" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Liste des restaurants -->
+            <div class="map-sidebar bg-white">
+                <div id="restaurantsList">
+                    {% for restaurant in restaurants %}
+                    <div class="restaurant-list-item" 
+                         data-restaurant-id="{{ restaurant.id }}"
+                         data-lat="{{ restaurant.latitude }}"
+                         data-lng="{{ restaurant.longitude }}"
+                         onclick="selectRestaurant({{ restaurant.id }})">
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">{{ restaurant.name }}</h6>
+                            <span class="distance-badge badge bg-primary" id="distance-{{ restaurant.id }}">
+                                <!-- Distance sera calculée par JS -->
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted small mb-2">{{ restaurant.description|truncatechars:60 }}</p>
+                        
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="rating-stars">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= restaurant.average_rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="ms-1">{{ restaurant.average_rating }}</span>
+                            </div>
+                            
+                            <div class="text-end">
+                                <small class="text-muted">
+                                    <i class="fas fa-truck me-1"></i>{{ restaurant.delivery_fee }} FCFA
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if restaurant.categories.all %}
+                        <div class="mt-2">
+                            {% for category in restaurant.categories.all|slice:":2" %}
+                            <span class="badge bg-light text-dark me-1">{{ category.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Carte principale -->
+        <div class="col-lg-8">
+            <!-- Inclure le composant de carte -->
+            {% include 'components/map.html' with map_id='restaurantsMap' height='600px' show_controls=True show_location_button=True center_lat=6.1319 center_lng=1.2228 zoom=12 %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les détails du restaurant -->
+<div class="modal fade" id="restaurantModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restaurantModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="restaurantModalBody">
+                <!-- Contenu chargé dynamiquement -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Fermer" %}</button>
+                <a href="#" class="btn btn-primary" id="viewRestaurantBtn">{% trans "Voir le restaurant" %}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let userLocation = null;
+    let selectedRestaurantId = null;
+    
+    // Données des restaurants
+    const restaurants = [
+        {% for restaurant in restaurants %}
+        {
+            id: {{ restaurant.id }},
+            name: "{{ restaurant.name|escapejs }}",
+            description: "{{ restaurant.description|escapejs }}",
+            lat: {{ restaurant.latitude }},
+            lng: {{ restaurant.longitude }},
+            rating: {{ restaurant.average_rating }},
+            delivery_fee: {{ restaurant.delivery_fee }},
+            address: "{{ restaurant.address|escapejs }}",
+            phone: "{{ restaurant.phone|escapejs }}",
+            categories: [
+                {% for category in restaurant.categories.all %}
+                "{{ category.name|escapejs }}"{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Initialiser la carte avec les marqueurs des restaurants
+    window.initMapRestaurantsmap = function() {
+        const mapElement = document.getElementById('restaurantsMap');
+        if (!mapElement) return;
+        
+        const map = new google.maps.Map(mapElement, {
+            center: { lat: 6.1319, lng: 1.2228 },
+            zoom: 12,
+            styles: [
+                {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                }
+            ]
+        });
+        
+        // Stocker la référence
+        window.GourmetMaps = window.GourmetMaps || {};
+        window.GourmetMaps['restaurantsMap'] = {
+            map: map,
+            markers: [],
+            infoWindows: []
+        };
+        
+        // Ajouter les marqueurs des restaurants
+        restaurants.forEach(restaurant => {
+            const marker = new google.maps.Marker({
+                position: { lat: restaurant.lat, lng: restaurant.lng },
+                map: map,
+                title: restaurant.name,
+                icon: {
+                    url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    scaledSize: new google.maps.Size(32, 32)
+                }
+            });
+            
+            // InfoWindow pour chaque restaurant
+            const infoContent = `
+                <div style="max-width: 250px;">
+                    <h6 class="mb-2">${restaurant.name}</h6>
+                    <p class="mb-2 text-muted small">${restaurant.description.substring(0, 80)}...</p>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="text-warning">
+                            ${'★'.repeat(Math.floor(restaurant.rating))}${'☆'.repeat(5-Math.floor(restaurant.rating))}
+                            <span class="ms-1">${restaurant.rating}</span>
+                        </div>
+                        <small class="text-muted">${restaurant.delivery_fee} FCFA</small>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-primary btn-sm" onclick="viewRestaurantDetails(${restaurant.id})">
+                            {% trans "Voir le menu" %}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const infoWindow = new google.maps.InfoWindow({
+                content: infoContent
+            });
+            
+            marker.addListener('click', () => {
+                // Fermer les autres InfoWindows
+                window.GourmetMaps['restaurantsMap'].infoWindows.forEach(iw => iw.close());
+                infoWindow.open(map, marker);
+                selectRestaurant(restaurant.id);
+            });
+            
+            window.GourmetMaps['restaurantsMap'].markers.push(marker);
+            window.GourmetMaps['restaurantsMap'].infoWindows.push(infoWindow);
+        });
+    };
+    
+    // Sélectionner un restaurant
+    window.selectRestaurant = function(restaurantId) {
+        // Mettre à jour la liste
+        document.querySelectorAll('.restaurant-list-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const selectedItem = document.querySelector(`[data-restaurant-id="${restaurantId}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('active');
+            selectedRestaurantId = restaurantId;
+        }
+    };
+    
+    // Voir les détails d'un restaurant
+    window.viewRestaurantDetails = function(restaurantId) {
+        const restaurant = restaurants.find(r => r.id === restaurantId);
+        if (!restaurant) return;
+        
+        // Charger les détails dans la modal
+        document.getElementById('restaurantModalTitle').textContent = restaurant.name;
+        document.getElementById('restaurantModalBody').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>{% trans "Informations" %}</h6>
+                    <p><strong>{% trans "Adresse" %}:</strong><br>${restaurant.address}</p>
+                    <p><strong>{% trans "Téléphone" %}:</strong><br>${restaurant.phone}</p>
+                    <p><strong>{% trans "Frais de livraison" %}:</strong> ${restaurant.delivery_fee} FCFA</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>{% trans "Évaluation" %}</h6>
+                    <div class="text-warning mb-2">
+                        ${'★'.repeat(Math.floor(restaurant.rating))}${'☆'.repeat(5-Math.floor(restaurant.rating))}
+                        <span class="ms-1">${restaurant.rating}/5</span>
+                    </div>
+                    <h6>{% trans "Catégories" %}</h6>
+                    <div>
+                        ${restaurant.categories.map(cat => `<span class="badge bg-light text-dark me-1">${cat}</span>`).join('')}
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <p class="text-muted">${restaurant.description}</p>
+        `;
+        
+        document.getElementById('viewRestaurantBtn').href = `/restaurants/${restaurantId}/`;
+        
+        // Afficher la modal
+        new bootstrap.Modal(document.getElementById('restaurantModal')).show();
+    };
+    
+    // Obtenir la position actuelle et chercher les restaurants
+    window.getCurrentLocationAndSearch = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    // Centrer la carte sur la position de l'utilisateur
+                    const mapData = window.GourmetMaps['restaurantsMap'];
+                    if (mapData) {
+                        mapData.map.setCenter(userLocation);
+                        mapData.map.setZoom(14);
+                        
+                        // Ajouter un marqueur pour la position de l'utilisateur
+                        const userMarker = new google.maps.Marker({
+                            position: userLocation,
+                            map: mapData.map,
+                            title: '{% trans "Ma position" %}',
+                            icon: {
+                                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                                scaledSize: new google.maps.Size(32, 32)
+                            }
+                        });
+                        
+                        mapData.markers.push(userMarker);
+                    }
+                    
+                    // Calculer et afficher les distances
+                    updateDistances();
+                    
+                    GourmetGuide.notifications.show('success', '{% trans "Position trouvée!" %}');
+                },
+                error => {
+                    console.error('Erreur de géolocalisation:', error);
+                    GourmetGuide.notifications.show('error', '{% trans "Impossible d'obtenir votre position" %}');
+                }
+            );
+        }
+    };
+    
+    // Mettre à jour les distances
+    function updateDistances() {
+        if (!userLocation) return;
+        
+        restaurants.forEach(restaurant => {
+            const distance = calculateDistance(
+                userLocation.lat, userLocation.lng,
+                restaurant.lat, restaurant.lng
+            );
+            
+            const distanceBadge = document.getElementById(`distance-${restaurant.id}`);
+            if (distanceBadge) {
+                distanceBadge.textContent = `${distance.toFixed(1)} km`;
+                distanceBadge.style.display = 'inline';
+            }
+        });
+        
+        // Trier les restaurants par distance
+        sortRestaurantsByDistance();
+    }
+    
+    // Calculer la distance (formule de Haversine simplifiée)
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+        const R = 6371; // Rayon de la Terre en km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+    
+    // Trier les restaurants par distance
+    function sortRestaurantsByDistance() {
+        if (!userLocation) return;
+        
+        const restaurantsList = document.getElementById('restaurantsList');
+        const items = Array.from(restaurantsList.children);
+        
+        items.sort((a, b) => {
+            const distanceA = parseFloat(document.getElementById(`distance-${a.dataset.restaurantId}`).textContent);
+            const distanceB = parseFloat(document.getElementById(`distance-${b.dataset.restaurantId}`).textContent);
+            return distanceA - distanceB;
+        });
+        
+        // Réorganiser les éléments
+        items.forEach(item => restaurantsList.appendChild(item));
+    }
+    
+    // Filtrer par rayon
+    document.getElementById('radiusFilter').addEventListener('change', function() {
+        const maxRadius = parseFloat(this.value);
+        
+        if (userLocation) {
+            document.querySelectorAll('.restaurant-list-item').forEach(item => {
+                const restaurantId = item.dataset.restaurantId;
+                const distanceBadge = document.getElementById(`distance-${restaurantId}`);
+                
+                if (distanceBadge) {
+                    const distance = parseFloat(distanceBadge.textContent);
+                    if (distance <= maxRadius) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+        }
+    });
+    
+    // Recherche d'adresse
+    document.getElementById('locationSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchAddress(this.value);
+        }
+    });
+    
+    // Rechercher une adresse via l'API
+    function searchAddress(address) {
+        if (!address.trim()) return;
+        
+        // Utiliser le service de géocodage de Google Maps
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ 
+            address: address + ', Togo',
+            region: 'TG'
+        }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const location = results[0].geometry.location;
+                userLocation = {
+                    lat: location.lat(),
+                    lng: location.lng()
+                };
+                
+                // Centrer la carte
+                const mapData = window.GourmetMaps['restaurantsMap'];
+                if (mapData) {
+                    mapData.map.setCenter(userLocation);
+                    mapData.map.setZoom(14);
+                    
+                    // Ajouter un marqueur
+                    const userMarker = new google.maps.Marker({
+                        position: userLocation,
+                        map: mapData.map,
+                        title: '{% trans "Position recherchée" %}',
+                        icon: {
+                            url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                            scaledSize: new google.maps.Size(32, 32)
+                        }
+                    });
+                    
+                    mapData.markers.push(userMarker);
+                }
+                
+                updateDistances();
+                GourmetGuide.notifications.show('success', '{% trans "Adresse trouvée!" %}');
+            } else {
+                GourmetGuide.notifications.show('error', '{% trans "Adresse non trouvée" %}');
+            }
+        });
+    }
+    
+    // Initialiser la carte une fois Google Maps chargé
+    if (typeof google !== 'undefined' && google.maps) {
+        initMapRestaurantsmap();
+    } else {
+        // Attendre le chargement
+        window.initMapRestaurantsmap = window.initMapRestaurantsmap || function() {
+            // La fonction sera définie par le composant map
+        };
+    }
+    
+    // Essayer d'obtenir la position automatiquement
+    setTimeout(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    updateDistances();
+                },
+                error => {
+                    console.log('Position automatique non disponible');
+                },
+                { timeout: 5000 }
+            );
+        }
+    }, 1000);
+});
+</script>
+
+<!-- Charger Google Maps si pas déjà fait -->
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY|default:'YOUR_API_KEY' }}&callback=initMapRestaurantsmap&libraries=places,geometry">
+</script>
+{% endblock %}

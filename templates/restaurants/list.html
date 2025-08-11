@@ -1,0 +1,324 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Restaurants" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .restaurant-filters {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .restaurant-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .restaurant-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .restaurant-image {
+        height: 200px;
+        background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 3rem;
+    }
+    
+    .restaurant-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+    }
+    
+    .rating-stars {
+        color: #ffc107;
+    }
+    
+    .delivery-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .filter-pills .btn {
+        border-radius: 25px;
+        margin: 0.2rem;
+    }
+    
+    .search-container {
+        position: relative;
+    }
+    
+    .search-container .form-control {
+        border-radius: 25px;
+        padding-left: 3rem;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Filtres et recherche -->
+    <div class="restaurant-filters p-4 mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="mb-0"><i class="fas fa-utensils me-2"></i>{% trans "Découvrez nos restaurants" %}</h2>
+                <p class="mb-0 mt-1 opacity-75">{% trans "Trouvez le restaurant parfait pour vos envies" %}</p>
+            </div>
+            <div class="col-md-6">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control" id="restaurantSearch" 
+                           placeholder="{% trans 'Rechercher un restaurant, un plat...' %}">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtres rapides -->
+        <div class="filter-pills mt-3">
+            <button class="btn btn-light btn-sm active" data-filter="all">
+                <i class="fas fa-list me-1"></i>{% trans "Tous" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-filter="featured">
+                <i class="fas fa-star me-1"></i>{% trans "Vedettes" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-filter="verified">
+                <i class="fas fa-check-circle me-1"></i>{% trans "Vérifiés" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-filter="open">
+                <i class="fas fa-clock me-1"></i>{% trans "Ouvert maintenant" %}
+            </button>
+            <button class="btn btn-outline-light btn-sm" data-filter="delivery">
+                <i class="fas fa-truck me-1"></i>{% trans "Livraison gratuite" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des restaurants -->
+    <div class="row g-4" id="restaurantList">
+        {% for restaurant in restaurants %}
+        <div class="col-md-6 col-lg-4 restaurant-item" 
+             data-featured="{{ restaurant.is_featured|yesno:'true,false' }}"
+             data-verified="{{ restaurant.is_verified|yesno:'true,false' }}"
+             data-status="{{ restaurant.status }}">
+            <div class="card restaurant-card">
+                <!-- Image du restaurant -->
+                <div class="position-relative">
+                    <div class="restaurant-image">
+                        {% if restaurant.cover_image %}
+                            <img src="{{ restaurant.cover_image }}" alt="{{ restaurant.name }}" 
+                                 class="w-100 h-100" style="object-fit: cover;">
+                        {% else %}
+                            <i class="fas fa-utensils"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Badges -->
+                    {% if restaurant.is_featured %}
+                    <span class="badge bg-warning restaurant-badge">
+                        <i class="fas fa-star me-1"></i>{% trans "Vedette" %}
+                    </span>
+                    {% endif %}
+                    
+                    {% if restaurant.is_verified %}
+                    <span class="badge bg-success restaurant-badge" style="top: {% if restaurant.is_featured %}45px{% else %}10px{% endif %};">
+                        <i class="fas fa-check-circle me-1"></i>{% trans "Vérifié" %}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Contenu de la carte -->
+                <div class="card-body p-3">
+                    <h5 class="card-title mb-2">{{ restaurant.name }}</h5>
+                    <p class="card-text text-muted small mb-2">{{ restaurant.description|truncatechars:80 }}</p>
+                    
+                    <!-- Évaluation -->
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rating-stars me-2">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= restaurant.average_rating %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="fw-bold">{{ restaurant.average_rating }}</span>
+                        <span class="text-muted ms-1">({{ restaurant.total_reviews }} {% trans "avis" %})</span>
+                    </div>
+                    
+                    <!-- Informations de livraison -->
+                    <div class="delivery-info d-flex justify-content-between mb-3">
+                        <span>
+                            <i class="fas fa-clock me-1"></i>
+                            30-45 min
+                        </span>
+                        <span>
+                            <i class="fas fa-truck me-1"></i>
+                            {{ restaurant.delivery_fee }} FCFA
+                        </span>
+                        <span>
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            {{ restaurant.city }}
+                        </span>
+                    </div>
+                    
+                    <!-- Catégories -->
+                    {% if restaurant.categories.all %}
+                    <div class="mb-3">
+                        {% for category in restaurant.categories.all|slice:":2" %}
+                        <span class="badge bg-light text-dark me-1">{{ category.name }}</span>
+                        {% endfor %}
+                        {% if restaurant.categories.count > 2 %}
+                        <span class="badge bg-light text-dark">+{{ restaurant.categories.count|add:"-2" }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Actions -->
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'restaurants:detail' restaurant.pk %}" 
+                           class="btn btn-primary flex-fill">
+                            <i class="fas fa-eye me-1"></i>{% trans "Voir" %}
+                        </a>
+                        <a href="{% url 'restaurants:menu' restaurant.pk %}" 
+                           class="btn btn-outline-primary flex-fill">
+                            <i class="fas fa-utensils me-1"></i>{% trans "Menu" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4>{% trans "Aucun restaurant trouvé" %}</h4>
+                <p class="text-muted">{% trans "Essayez de modifier vos critères de recherche" %}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="{% trans 'Navigation des restaurants' %}" class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">{% trans "Premier" %}</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Précédent" %}</a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Suivant" %}</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">{% trans "Dernier" %}</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('restaurantSearch');
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const restaurantItems = document.querySelectorAll('.restaurant-item');
+    
+    // Fonction de recherche
+    function filterRestaurants() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const activeFilter = document.querySelector('[data-filter].active').dataset.filter;
+        
+        restaurantItems.forEach(item => {
+            const name = item.querySelector('.card-title').textContent.toLowerCase();
+            const description = item.querySelector('.card-text').textContent.toLowerCase();
+            const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+            
+            let matchesFilter = true;
+            if (activeFilter === 'featured') {
+                matchesFilter = item.dataset.featured === 'true';
+            } else if (activeFilter === 'verified') {
+                matchesFilter = item.dataset.verified === 'true';
+            } else if (activeFilter === 'open') {
+                // Pour l'instant, on considère tous les restaurants comme ouverts
+                matchesFilter = true;
+            } else if (activeFilter === 'delivery') {
+                // Pour l'instant, on considère tous les restaurants comme ayant la livraison
+                matchesFilter = true;
+            }
+            
+            if (matchesSearch && matchesFilter) {
+                item.style.display = 'block';
+                item.style.animation = 'fadeInUp 0.3s ease';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    // Événements de recherche
+    searchInput.addEventListener('input', GourmetGuide.utils.debounce(filterRestaurants, 300));
+    
+    // Événements de filtrage
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            filterButtons.forEach(btn => btn.classList.add('btn-outline-light'));
+            filterButtons.forEach(btn => btn.classList.remove('btn-light'));
+            
+            this.classList.add('active');
+            this.classList.remove('btn-outline-light');
+            this.classList.add('btn-light');
+            
+            filterRestaurants();
+        });
+    });
+    
+    // Animation d'entrée
+    restaurantItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.3s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

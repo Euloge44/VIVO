@@ -1,0 +1,317 @@
+{% load i18n %}
+{% load static %}
+
+<!-- Template de carte Google Maps réutilisable -->
+<div class="map-container" id="{{ map_id|default:'map' }}" 
+     data-lat="{{ center_lat|default:'6.1319' }}" 
+     data-lng="{{ center_lng|default:'1.2228' }}"
+     data-zoom="{{ zoom|default:'13' }}"
+     data-type="{{ map_type|default:'roadmap' }}"
+     style="height: {{ height|default:'400px' }}; border-radius: 15px;">
+    
+    <!-- Fallback si Google Maps n'est pas disponible -->
+    <div class="map-fallback d-flex align-items-center justify-content-center h-100 bg-light text-muted">
+        <div class="text-center">
+            <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
+            <h5>{% trans "Carte interactive" %}</h5>
+            <p class="mb-0">{% trans "Google Maps sera chargé ici" %}</p>
+            {% if not GOOGLE_MAPS_API_KEY %}
+            <small class="text-danger">{% trans "Clé API Google Maps requise" %}</small>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Contrôles de carte (optionnels) -->
+{% if show_controls %}
+<div class="map-controls mt-3">
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeMapType('{{ map_id|default:'map' }}', 'roadmap')">
+            <i class="fas fa-road me-1"></i>{% trans "Route" %}
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeMapType('{{ map_id|default:'map' }}', 'satellite')">
+            <i class="fas fa-satellite me-1"></i>{% trans "Satellite" %}
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeMapType('{{ map_id|default:'map' }}', 'hybrid')">
+            <i class="fas fa-layer-group me-1"></i>{% trans "Hybride" %}
+        </button>
+    </div>
+    
+    {% if show_location_button %}
+    <button type="button" class="btn btn-outline-success btn-sm ms-2" onclick="getCurrentLocation('{{ map_id|default:'map' }}')">
+        <i class="fas fa-crosshairs me-1"></i>{% trans "Ma position" %}
+    </button>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- JavaScript pour Google Maps -->
+<script>
+// Variables globales pour les cartes
+window.GourmetMaps = window.GourmetMaps || {};
+
+// Initialiser la carte
+function initMap{{ map_id|default:'map'|capfirst }}() {
+    const mapElement = document.getElementById('{{ map_id|default:'map' }}');
+    if (!mapElement) return;
+    
+    const lat = parseFloat(mapElement.dataset.lat);
+    const lng = parseFloat(mapElement.dataset.lng);
+    const zoom = parseInt(mapElement.dataset.zoom);
+    const mapType = mapElement.dataset.type;
+    
+    // Configuration de la carte
+    const mapOptions = {
+        center: { lat: lat, lng: lng },
+        zoom: zoom,
+        mapTypeId: mapType,
+        styles: [
+            {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [{ visibility: "off" }]
+            }
+        ],
+        zoomControl: true,
+        mapTypeControl: {% if show_controls %}true{% else %}false{% endif %},
+        scaleControl: true,
+        streetViewControl: {% if show_street_view %}true{% else %}false{% endif %},
+        rotateControl: false,
+        fullscreenControl: true
+    };
+    
+    // Créer la carte
+    const map = new google.maps.Map(mapElement, mapOptions);
+    
+    // Stocker la référence de la carte
+    window.GourmetMaps['{{ map_id|default:'map' }}'] = {
+        map: map,
+        markers: [],
+        infoWindows: []
+    };
+    
+    {% if markers %}
+    // Ajouter les marqueurs
+    const markers = {{ markers|safe }};
+    addMarkersToMap('{{ map_id|default:'map' }}', markers);
+    {% endif %}
+    
+    {% if center_marker %}
+    // Marqueur central
+    addMarkerToMap('{{ map_id|default:'map' }}', {
+        lat: lat,
+        lng: lng,
+        title: '{{ center_marker.title|default:"Position" }}',
+        icon: '{{ center_marker.icon|default:"" }}',
+        info: '{{ center_marker.info|default:"" }}'
+    });
+    {% endif %}
+    
+    {% if delivery_zones %}
+    // Zones de livraison
+    const zones = {{ delivery_zones|safe }};
+    addDeliveryZones('{{ map_id|default:'map' }}', zones);
+    {% endif %}
+    
+    {% if route %}
+    // Afficher un itinéraire
+    const route = {{ route|safe }};
+    displayRoute('{{ map_id|default:'map' }}', route);
+    {% endif %}
+    
+    // Événements personnalisés
+    {% if on_click %}
+    map.addListener('click', function(event) {
+        {{ on_click|safe }}(event.latLng.lat(), event.latLng.lng());
+    });
+    {% endif %}
+    
+    {% if on_marker_click %}
+    // Sera défini lors de l'ajout des marqueurs
+    {% endif %}
+}
+
+// Ajouter des marqueurs à une carte
+function addMarkersToMap(mapId, markers) {
+    const mapData = window.GourmetMaps[mapId];
+    if (!mapData) return;
+    
+    markers.forEach(markerData => {
+        const marker = new google.maps.Marker({
+            position: { lat: markerData.lat, lng: markerData.lng },
+            map: mapData.map,
+            title: markerData.title,
+            icon: markerData.icon || null
+        });
+        
+        // InfoWindow si contenu fourni
+        if (markerData.info) {
+            const infoWindow = new google.maps.InfoWindow({
+                content: markerData.info
+            });
+            
+            marker.addListener('click', () => {
+                // Fermer les autres InfoWindows
+                mapData.infoWindows.forEach(iw => iw.close());
+                infoWindow.open(mapData.map, marker);
+            });
+            
+            mapData.infoWindows.push(infoWindow);
+        }
+        
+        {% if on_marker_click %}
+        marker.addListener('click', () => {
+            {{ on_marker_click|safe }}(markerData);
+        });
+        {% endif %}
+        
+        mapData.markers.push(marker);
+    });
+    
+    // Ajuster la vue pour inclure tous les marqueurs
+    if (markers.length > 1) {
+        const bounds = new google.maps.LatLngBounds();
+        markers.forEach(marker => {
+            bounds.extend(new google.maps.LatLng(marker.lat, marker.lng));
+        });
+        mapData.map.fitBounds(bounds);
+    }
+}
+
+// Ajouter un seul marqueur
+function addMarkerToMap(mapId, markerData) {
+    addMarkersToMap(mapId, [markerData]);
+}
+
+// Ajouter des zones de livraison
+function addDeliveryZones(mapId, zones) {
+    const mapData = window.GourmetMaps[mapId];
+    if (!mapData) return;
+    
+    zones.forEach(zone => {
+        const circle = new google.maps.Circle({
+            strokeColor: zone.color,
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: zone.color,
+            fillOpacity: 0.15,
+            map: mapData.map,
+            center: zone.center,
+            radius: zone.radius
+        });
+        
+        mapData.markers.push(circle);
+    });
+}
+
+// Afficher un itinéraire
+function displayRoute(mapId, route) {
+    const mapData = window.GourmetMaps[mapId];
+    if (!mapData || !route.waypoints || route.waypoints.length < 2) return;
+    
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+        suppressMarkers: false,
+        polylineOptions: {
+            strokeColor: '#667eea',
+            strokeWeight: 4
+        }
+    });
+    
+    directionsRenderer.setMap(mapData.map);
+    
+    const waypoints = route.waypoints.slice(1, -1).map(point => ({
+        location: new google.maps.LatLng(point.lat, point.lng),
+        stopover: true
+    }));
+    
+    const request = {
+        origin: new google.maps.LatLng(route.waypoints[0].lat, route.waypoints[0].lng),
+        destination: new google.maps.LatLng(
+            route.waypoints[route.waypoints.length - 1].lat, 
+            route.waypoints[route.waypoints.length - 1].lng
+        ),
+        waypoints: waypoints,
+        travelMode: google.maps.TravelMode.{{ route.travel_mode|default:'DRIVING' }},
+        optimizeWaypoints: true
+    };
+    
+    directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            
+            // Callback si fourni
+            {% if on_route_calculated %}
+            {{ on_route_calculated|safe }}(result);
+            {% endif %}
+        }
+    });
+}
+
+// Changer le type de carte
+function changeMapType(mapId, mapType) {
+    const mapData = window.GourmetMaps[mapId];
+    if (mapData) {
+        mapData.map.setMapTypeId(mapType);
+    }
+}
+
+// Obtenir la position actuelle
+function getCurrentLocation(mapId) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                const mapData = window.GourmetMaps[mapId];
+                if (mapData) {
+                    mapData.map.setCenter({ lat: lat, lng: lng });
+                    mapData.map.setZoom(15);
+                    
+                    // Ajouter un marqueur pour la position actuelle
+                    addMarkerToMap(mapId, {
+                        lat: lat,
+                        lng: lng,
+                        title: '{% trans "Ma position" %}',
+                        icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    });
+                }
+                
+                {% if on_location_found %}
+                {{ on_location_found|safe }}(lat, lng);
+                {% endif %}
+            },
+            error => {
+                console.error('Erreur de géolocalisation:', error);
+                GourmetGuide.notifications.show('error', '{% trans "Impossible d'obtenir votre position" %}');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000
+            }
+        );
+    } else {
+        GourmetGuide.notifications.show('error', '{% trans "Géolocalisation non supportée" %}');
+    }
+}
+
+// Initialiser la carte quand Google Maps est chargé
+document.addEventListener('DOMContentLoaded', function() {
+    // Si Google Maps est déjà chargé
+    if (typeof google !== 'undefined' && google.maps) {
+        initMap{{ map_id|default:'map'|capfirst }}();
+    } else {
+        // Attendre le chargement de Google Maps
+        window.initMap{{ map_id|default:'map'|capfirst }} = initMap{{ map_id|default:'map'|capfirst }};
+    }
+});
+</script>
+
+<!-- Charger Google Maps API si pas déjà fait -->
+{% if not maps_loaded %}
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap{{ map_id|default:'map'|capfirst }}&libraries=places,geometry">
+</script>
+{% endif %}
